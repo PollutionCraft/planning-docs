@@ -1,0 +1,23 @@
+{
+  "name": "pollution-craft-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.11",
+    "@astrojs/starlight": "^0.42.6",
+    "astro": "^7.4.1",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

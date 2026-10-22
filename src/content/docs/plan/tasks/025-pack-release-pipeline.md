@@ -45,6 +45,8 @@ A tagged release of the pack repo produces a working GitHub pre-release that a t
    - Repeat for any other mod not served from Modrinth's CDN.
    - Keep re-hosting the GTM jar for every future snapshot pin.
 4a. **Decided pins** ([ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/), accepted): NeoForge **21.1.264** and GTM `8.0.0-SNAPSHOT+20261017-095459-36a6b38` with its recorded hash.
+   - **Recorded deviation (Heimdall, 2026-10-22):** the original local pack was lost and recreated, and the exact build `8.0.0-SNAPSHOT+20261017-095459-36a6b38` is not available for download. The pack instead pins the closest available build: maven.gtceu.com snapshot `8.0.0-20261017.095456-124`, from the **same commit `36a6b38`** (embedded mod version `8.0.0-SNAPSHOT+36a6b38`, timestamp 3 s earlier), SHA-256 `057f8e9750b750bf020340a3d8ecdde0fe183c7a3a1ac1afae29777e031a1011`, recorded with `hash-format = "sha256"` in `mods/gtceu.pw.toml`. Per [ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/) this pack is the only GTM pin. Until step 4 re-hosts the jar, the source is that timestamped Maven URL, not a rolling one.
+   - **Finding:** packwiz embeds GTM (not on Modrinth) in the `.mrpack`'s `overrides/` too, not only in the CurseForge `.zip`. Both archives redistribute GTM and are for private testing only. Whether that is acceptable for tester releases is open for project-owner.
    - Bump either only deliberately, in its own change.
    - Each bump needs a green smoke test (task 002) **and** a world-load check: an existing test world from the previous pin loads without errors or missing registry entries.
    - Never point at `latest-1.21`.

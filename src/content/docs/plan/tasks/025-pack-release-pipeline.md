@@ -4,7 +4,14 @@ status: proposed
 owner: Heimdall
 ---
 
-**Not blocked.** The licence is decided ([ADR 0009](../../../design/decisions/0009-licensing/)) and the pack repo already exists. This task does **not** wait for [ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/): the pipeline is the same for either loader.
+**Status 2026-10-22: pack scaffold done; every release step deferred (user decision).** The pack stays at **v0.0.1**: no tagged release, no GitHub Release, no distribution of any kind **until core functionality works**. Until then everything is local: Prism imports a local `packwiz modrinth export`, plus the local server smoke test and branch CI (task [002](../002-pack-scaffold-and-smoke-test/)).
+
+- **Done:** pack recreated and pinned by hash (step 4a, with the recorded GTM deviation); packwiz and Actions pinned (step 3); `THIRD-PARTY.md` written and committed (step 5); `release.yml` written and checked locally (tag check, stale-index check, per-mod archive hash check), never run. Pack repo `PollutionCraft/pollutioncraft-pack`, branch `feature/pack-scaffold-and-smoke-test` (commits `2d1a463`, `e050379`). The remote exists and the branch is pushed (step 2, partly: no `main` yet).
+- **Deferred until the trigger:** step 4 (re-hosting GTM; the `.mrpack` bundles GTM anyway, see the step 4a finding, so revisit whether it is still needed), step 6 (tagged `v0.0.1` release, plus the mismatch and stale-index checks on a real workflow run), step 7 (install check of the released `.mrpack` and `.zip`), step 8 (our mods in release notes).
+- **Trigger:** the user declares core functionality working. Project-owner records that decision in the brief's Decisions log; it is not tied to a milestone yet. Only then does the first tagged release happen.
+- **Conditions that stay attached to that first release** (project-owner ruling 2026-10-22, brief Decisions log): GitHub pre-releases only; the GTM jar unmodified; no Modrinth/CurseForge publication; `THIRD-PARTY.md` with GTM's LGPL-3.0 notice and source link attached to every release. The file exists now and `release.yml` attaches it. Before the first release, re-verify GTM's licence text (the ruling marks it an assumption) and the spark source tag.
+
+**Not blocked** (for the deferred steps: blocked by the trigger above). The licence is decided ([ADR 0009](../../../design/decisions/0009-licensing/)) and the pack repo already exists. This task does **not** wait for [ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/): the pipeline is the same for either loader.
 
 ## Context
 
@@ -46,7 +53,7 @@ A tagged release of the pack repo produces a working GitHub pre-release that a t
    - Keep re-hosting the GTM jar for every future snapshot pin.
 4a. **Decided pins** ([ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/), accepted): NeoForge **21.1.264** and GTM `8.0.0-SNAPSHOT+20261017-095459-36a6b38` with its recorded hash.
    - **Recorded deviation (Heimdall, 2026-10-22):** the original local pack was lost and recreated, and the exact build `8.0.0-SNAPSHOT+20261017-095459-36a6b38` is not available for download. The pack instead pins the closest available build: maven.gtceu.com snapshot `8.0.0-20261017.095456-124`, from the **same commit `36a6b38`** (embedded mod version `8.0.0-SNAPSHOT+36a6b38`, timestamp 3 s earlier), SHA-256 `057f8e9750b750bf020340a3d8ecdde0fe183c7a3a1ac1afae29777e031a1011`, recorded with `hash-format = "sha256"` in `mods/gtceu.pw.toml`. Per [ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/) this pack is the only GTM pin. Until step 4 re-hosts the jar, the source is that timestamped Maven URL, not a rolling one.
-   - **Finding:** packwiz embeds GTM (not on Modrinth) in the `.mrpack`'s `overrides/` too, not only in the CurseForge `.zip`. Both archives redistribute GTM and are for private testing only. Whether that is acceptable for tester releases is open for project-owner.
+   - **Finding:** packwiz embeds GTM (not on Modrinth) in the `.mrpack`'s `overrides/` too, not only in the CurseForge `.zip`. Both archives redistribute GTM and are for private testing only. **Project-owner ruling 2026-10-22: acceptable for tester releases** on conditions: GitHub pre-releases only, unmodified jar, no Modrinth/CurseForge publication, and `THIRD-PARTY.md` (step 5) with GTM's notice and source link attached before the first tagged release. See the brief's Decisions log.
    - Bump either only deliberately, in its own change.
    - Each bump needs a green smoke test (task 002) **and** a world-load check: an existing test world from the previous pin loads without errors or missing registry entries.
    - Never point at `latest-1.21`.
@@ -61,7 +68,7 @@ A tagged release of the pack repo produces a working GitHub pre-release that a t
 
 8. **Our mods in release notes:** the release workflow writes the exact versions of our own mods into the release notes. Once task 022 adds the core mod, these notes are the supported-combination record ([ADR 0011](../../../design/decisions/0011-cross-repo-artifacts-and-versioning/) §5). Our mods are pinned like any other mod: exact version and hash from the **GitHub Release asset** (or the CurseForge file, or Modrinth if available). **Never GitHub Packages**: players' installers have no token. The alpha stays on GitHub Releases. Never a range or snapshot. Until 022 the list is empty, and the step only has to handle that case. Compat is mandatory in our pack ([ADR 0012](../../../design/decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) §3). In the alpha it ships inside core. Later, the notes list the core, compat, and gap-filler versions, and the release order is core and gap-filler, then compat, then the pack.
 
-**Done when:** steps 1–8 are complete. The `v0.0.1` pre-release exists with `.mrpack`, `.zip`, and `THIRD-PARTY.md`. The `.mrpack` downloads nothing from rolling URLs.
+**Done when** (after the trigger above): steps 1–8 are complete. The `v0.0.1` pre-release exists with `.mrpack`, `.zip`, and `THIRD-PARTY.md`. The `.mrpack` downloads nothing from rolling URLs.
 
 ## Design references
 

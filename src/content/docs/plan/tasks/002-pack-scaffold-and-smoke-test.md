@@ -1,8 +1,12 @@
 ---
 title: "002: Pack CI and server smoke test"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+**Accepted 2026-10-22** (branch `feature/pack-scaffold-and-smoke-test`, commit e050379). Evidence: smoke test green (`Done (`, emi, gtceu, spark loaded, `environmentalHazards: false`); red on an invalid NeoForge version and on a broken-jar crash; `packwiz refresh` leaves no index diff; CI green on GitHub. Verified by Heimdall and the user; I read the reports and did not re-run the tests.
+
+Non-blocking follow-ups: `SMOKE_PORT` (fixed port 25565 for now); a `shellcheck` step in CI; verify the NeoForge installer download by hash. Each is a Heimdall change to `smoke-test.sh` or `ci.yml`. Allowlist note: new mods may need entries for the broad `Exception` pattern.
 
 **Blocked by:** task [025](../025-pack-release-pipeline/) (remote, pinned tooling). The target is the existing pack: Minecraft 1.21.1, NeoForge 21.1.264, GTM `8.0.0-SNAPSHOT+20261017-095459-36a6b38` ([ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/), accepted).
 

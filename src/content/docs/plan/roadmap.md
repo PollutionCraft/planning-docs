@@ -55,8 +55,8 @@ IDs for 005 and later are tentative, except 006 and 025, which are briefed. IDs 
 | --- | --- | --- | --- |
 | [006](../tasks/006-spike-gtm-1-21-readiness/) | Spike: GTM 1.21.1 NeoForge snapshot readiness. **Done**; ADR 0001 accepted. Follow-ups: the user's playthrough, and reproducing #5447 | — | — |
 | [001](../tasks/001-mod-scaffold-and-ci/) | Core mod scaffold, unit-test and GameTest harness, CI (1.21.1, NeoForge, Java 21). **Done**, accepted with conditions (GTM hash to confirm against the pack; ADRs 0013 and 0014 still proposed) | — | — |
-| [025](../tasks/025-pack-release-pipeline/) | Pack release pipeline: GitHub remote, pinned packwiz, re-hosted GTM jar, `THIRD-PARTY.md`, test release `v0.0.1` | — | — (pack licence done) |
-| [002](../tasks/002-pack-scaffold-and-smoke-test/) | Pack CI on push and pull request, plus a dedicated-server smoke test | 025 | — |
+| [025](../tasks/025-pack-release-pipeline/) | Pack release pipeline. **Scaffold done** (pack v0.0.1 pinned by hash, pinned tooling, `THIRD-PARTY.md`, `release.yml` written but never run). **Not released:** the tagged `v0.0.1` release, install check, re-hosted GTM jar and release notes are deferred until core functionality works (user decision 2026-10-22); until then testing is local only | — | Release steps: user declares core functionality working |
+| [002](../tasks/002-pack-scaffold-and-smoke-test/) | Pack CI on push and pull request, plus a dedicated-server smoke test. **Done**, accepted (follow-ups: `SMOKE_PORT`, shellcheck in CI, NeoForge installer hash) | 025 | — |
 | 026 | Core-mod release pipeline (tentative, not yet briefed; details below) | 001 | ADR 0011 accepted (hosting already decided by the user) |
 | [003](../tasks/003-spike-gregtech-activity-hook/) | Spike: detecting "GT machine is working" | 001 | GT in the pack |
 | [004](../tasks/004-spike-siege-ai/) | Spike: siege AI, its tick cost, despawn and spawn constraints | 001 | — |

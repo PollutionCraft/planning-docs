@@ -183,6 +183,13 @@ For product-architect:
 - Evidence: User statement (Fact).
 - Revisit if: Spike 003 shows the GregTech hook is cheap enough to include earlier.
 
+### 2026-10-22: Tester releases may bundle the GTM jar
+- Context: packwiz embeds the GTM jar in both the `.mrpack` (`overrides/`) and the CurseForge `.zip` (task 025 finding).
+- Options: accept for tester releases; or host GTM externally (not possible for `.mrpack` without public publishing rules).
+- Decision: Acceptable, on conditions: GitHub pre-releases only, unmodified jar, no Modrinth/CurseForge publication, and `THIRD-PARTY.md` with GTM's LGPL-3.0 notice and source link attached to every release (025 step 5). The first tagged release is blocked until that file exists.
+- Evidence: LGPL-3.0 allows redistributing the unmodified jar with notice and source offer (025 step 4). I have not checked GTM's licence file myself this session: **Assumption** until 025 step 5 verifies it.
+- Revisit if: the pack is published on Modrinth or CurseForge, or GTM's licence or distribution terms change.
+
 ### 2026-10-20: M7 rewritten to be testable
 - Context: Mimir showed "net pollution stays above zero" cannot be tested, since a decaying system always settles where net flow is zero.
 - Options: Keep the wording; define a floor that absorbers cannot lower.

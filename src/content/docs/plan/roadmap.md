@@ -54,7 +54,7 @@ IDs for 005 and later are tentative, except 006 and 025, which are briefed. IDs 
 | ID | Task | After | Blocked by |
 | --- | --- | --- | --- |
 | [006](../tasks/006-spike-gtm-1-21-readiness/) | Spike: GTM 1.21.1 NeoForge snapshot readiness. **Done**; ADR 0001 accepted. Follow-ups: the user's playthrough, and reproducing #5447 | — | — |
-| [001](../tasks/001-mod-scaffold-and-ci/) | Core mod scaffold, unit-test and GameTest harness, CI (1.21.1, NeoForge, Java 21) | — | — |
+| [001](../tasks/001-mod-scaffold-and-ci/) | Core mod scaffold, unit-test and GameTest harness, CI (1.21.1, NeoForge, Java 21). **Done**, accepted with conditions (GTM hash to confirm against the pack; ADRs 0013 and 0014 still proposed) | — | — |
 | [025](../tasks/025-pack-release-pipeline/) | Pack release pipeline: GitHub remote, pinned packwiz, re-hosted GTM jar, `THIRD-PARTY.md`, test release `v0.0.1` | — | — (pack licence done) |
 | [002](../tasks/002-pack-scaffold-and-smoke-test/) | Pack CI on push and pull request, plus a dedicated-server smoke test | 025 | — |
 | 026 | Core-mod release pipeline (tentative, not yet briefed; details below) | 001 | ADR 0011 accepted (hosting already decided by the user) |

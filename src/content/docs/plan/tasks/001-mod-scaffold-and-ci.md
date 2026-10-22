@@ -1,8 +1,14 @@
 ---
 title: "001: Core mod scaffold, test harness, CI"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+**Done: accepted with conditions (2026-10-22).** Commands and tests pass locally and in CI, per the engineer reports and the CI runs cited by the lead (not re-run by project-owner). CI runs: [green](https://github.com/PollutionCraft/pollutioncraft/actions/runs/39819937840) on `feature/001-mod-scaffold-and-ci`, [red](https://github.com/PollutionCraft/pollutioncraft/actions/runs/39822111960) on a deliberately failing GameTest. Open conditions:
+
+1. **GTM hash unconfirmed.** `057f8e97…1011` is the hash of Maven snapshot `20261017.095456-124`: same commit `36a6b38` as the pin above, timestamp 3 s off. Compare it with the pack's `mods/gtceu.pw.toml` once the pack repo has one (tasks 025/002). If it differs, re-host and update `gradle.properties`.
+2. **Package name and licence ID** rest on ADR 0013 and ADR 0014, both still `proposed`. A package rename is a mechanical change; do it before task 005 if ADR 0013 changes.
+3. **Transitive GTM dependencies** are not hash-pinned individually (GTM is resolved non-transitively and its jar-in-jar covers runtime). Decide in task 025/022 whether the pack pin must cover them.
 
 **Not blocked.** [ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/) is accepted: Minecraft 1.21.1, NeoForge 21.1.x, Java 21.
 

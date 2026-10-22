@@ -28,7 +28,7 @@ Engineering view per subsystem, mapped to [architecture 3.1](../../design/archit
 | Emitters | M1 | Core provides the emitter engine and mapping format only; core alone emits nothing. All mappings, vanilla included, live in compat (vanilla in `…compat.minecraft`, inside core for the alpha). The first slice maps only the vanilla furnace (`lit`); that alone covers M1 without GregTech. Other vanilla blocks follow (task 029). Pack-specific rates are pack config or datapack overrides. GTM hook unverified (spike [003](../tasks/003-spike-gregtech-activity-hook/)). | Low (vanilla), Medium (GTM) |
 | Absorber sampler | M3 | Surface sampling per [ADR 0004](../../design/decisions/0004-absorption-anti-spam/). Bounded cost: one chunk per tick. | Medium |
 | Siege AI | M4 | **The main technical risk.** See below and spike [004](../tasks/004-spike-siege-ai/). | High |
-| Debug commands, config | Testing | `/pollution get\|set\|clear\|step\|pressure`; every number configurable. | Low |
+| Debug commands, config | Testing | `/pollution get\|set\|clear\|step\|pressure\|rates\|tune`, plus an F3 dev overlay; every number configurable. | Low |
 
 ### Adapters to other mods (post-alpha seam)
 

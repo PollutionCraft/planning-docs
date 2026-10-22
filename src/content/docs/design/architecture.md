@@ -172,6 +172,7 @@ Grid unit: **one Minecraft chunk (16 × 16 blocks, full height)**, keyed by chun
 | `persistent` | `double` | Pollution only fixed decay removes. Always 0 in the alpha; used for M7 ([ADR 0004](../decisions/0004-absorption-anti-spam/)). |
 | `emittedLastInterval` | `double` | Gross emission in this chunk last interval |
 | `dominantSource` | `long` (BlockPos) + `double` rate | Highest-rate emitter last interval; the siege target |
+| `lastIntervalStats` | transient, not saved | `spreadIn`, `spreadOut`, `absorbed`, `decayed` from the last interval; read by the debug commands and overlay |
 | `absorberCache` | per-type counts + `sampledAtActiveTick` | Last absorber sample; used while the chunk is unloaded |
 
 Per world, the global record:
@@ -237,7 +238,8 @@ These are two separate rules:
 - **Read API:** `getLocal(level, chunkX, chunkZ)`, `getPressure(server)`, `isAggressive(level, chunkX, chunkZ)`.
 - **Siege registration:** siege-eligible mobs come from the config list plus the tag `pollutioncraft:siege_eligible`. Mobs from other mods, including the gap-filler, join through tag entries **shipped by compat** (ADR 0012); the mob's own mod ships nothing. **Assumption:** eligible types must be pathfinding mobs (`PathfinderMob` in Mojang mappings); others are ignored with one log warning.
 - **Tags** (namespace `pollutioncraft`): `absorbers/<type>` (blocks and entity types), `siege_eligible`, `siege_immune`, `emitters/<name>`.
-- **Commands** (permission level 2): `/pollution get|set|clear|step|pressure`.
+- **Commands** (permission level 2): `/pollution get|set|clear|step|pressure|rates`, and `/pollution tune <key> <value>` for in-memory, session-only rate overrides (never written to config).
+- **Dev overlay:** an F3 debug-screen section showing local pollution, generation/spread/absorption rates, and pressure, fed by a server payload sent only to permission-level-2 players with the overlay on. A developer tool, not the player display (a Could item); the mod is required on both client and server (user decision 2026-10-22, roadmap task 030).
 - **Config:** server config; every rate, interval, threshold, and cap.
 - **Stability:** semver covers only `…api.*` ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §1). Compat declares a runtime range `[X.Y, X+1)` on core. The gap-filler does not use the API. Adapters inside core use it as if they were external.
 - **Future (M5):** a removal or scrub call, for mitigation machines bridged by compat.

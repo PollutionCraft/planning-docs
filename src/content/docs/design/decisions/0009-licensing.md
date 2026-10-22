@@ -4,7 +4,7 @@ status: accepted
 owner: Mimir
 ---
 
-- **Status:** accepted 2026-10-20 by the user.
+- **Status:** accepted 2026-10-20 by the user. The SPDX id (`LGPL-3.0-only`) is refined by [ADR 0014](../0014-licence-spdx-id/) (proposed).
 - **Context:** We publish our own mods (core, compat, gap-filler; [ADR 0005](../0005-custom-mod-vs-existing-mods/)) and a pack repo. The GTM adapter calls GregTech CEu Modern. **Fact:** GTM is licensed LGPL-3.0, per the GitHub API for `GregTechCEu/GregTech-Modern`.
 
 ## Options

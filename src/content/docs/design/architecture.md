@@ -22,6 +22,8 @@ Design for the v0.1 alpha (M1–M4 in the [brief](../../brief/overview/)), plus 
 | [0010](../decisions/0010-four-repositories/) | Four repos (core, compat, gap-filler, pack); supersedes ADR 0005's one-repo part | **accepted** |
 | [0011](../decisions/0011-cross-repo-artifacts-and-versioning/) | Artifacts, semver, cross-repo CI and releases. **Decided by the user:** one artifact per repo (§1), two-tier publishing (§4), platform releases deferred behind `PUBLISH_PLATFORMS` (§8.1), AI disclosure (§8.2). | proposed (§§2–3, 5–7 for confirmation; §8.2 conflict and §8.3 open) |
 | [0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) | Independent gap-filler; compat is the single integration layer (amends 0005, 0010) | **accepted** |
+| [0013](../decisions/0013-java-package-namespace/) | Base package and Maven group `io.github.pollutioncraft` | proposed (§9 Q11) |
+| [0014](../decisions/0014-licence-spdx-id/) | SPDX id `LGPL-3.0-only` for our mods (refines 0009) | proposed (§9 Q11) |
 
 This page stays `proposed` until 0008 and 0011 are decided. Where it describes an accepted ADR, that ADR is authoritative.
 
@@ -255,7 +257,7 @@ Engineering's detail: [task 001](../../plan/tasks/001-mod-scaffold-and-ci/) and 
 
 ## 4. Conventions
 
-- **Naming:** mod ids `pollutioncraft`, and later `pollutioncraft_compat` (provisional). Artifact `pollutioncraft-1.21.1`. The gap-filler gets a neutral name (**open**, §9 Q8), since it is independent of pollution. Adapter packages: `…compat.<modid>`. Tag and config keys use `snake_case`. "Local pollution" means per chunk (16×16 blocks); "global pressure" means per world.
+- **Naming:** base package and Maven group `io.github.pollutioncraft` ([ADR 0013](../decisions/0013-java-package-namespace/)); `…` in package names below stands for it. Mod ids `pollutioncraft`, and later `pollutioncraft_compat` (provisional). Artifact `pollutioncraft-1.21.1`. The gap-filler gets a neutral name (**open**, §9 Q8), since it is independent of pollution. Adapter packages: `…compat.<modid>`. Tag and config keys use `snake_case`. "Local pollution" means per chunk (16×16 blocks); "global pressure" means per world.
 - **Units:** pollution in PU (dimensionless `double`). **Config intervals are in ticks (20 ticks = 1 s)** and rates are per interval, with the seconds equivalent shown in each config comment.
 - **Errors:**
   - Invalid config (NaN, negative, `4×spreadFraction ≥ 1`) is rejected at load; the default is kept and the key is logged.
@@ -374,6 +376,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 8. **Gap-filler name:** a neutral name replacing the provisional `pollutioncraft_content`. ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/))
 9. **Third-party compile route** (narrowed by the one-artifact rule): third parties compile against the same full jar. Document only GitHub Packages (PAT) at first, and add the anonymous CurseMaven/Modrinth Maven routes when platform publishing starts? Recommended: yes. Only `…api.*` is under semver. ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §8.3)
 10. **Later, not needed for the alpha:** the net-zero cutoff stage (proposal: HV), starting numbers (emission rates, thresholds, spread, floor value; tuned in playtests), and **platform releases** of our mods (deferred by the user; `PUBLISH_PLATFORMS` stays off, ADR 0011 §8.1).
+11. **Package namespace and licence id** (task 001): confirm `io.github.pollutioncraft` (the GitHub org PollutionCraft, from the docs repo remote; [ADR 0013](../decisions/0013-java-package-namespace/)) and `LGPL-3.0-only` rather than `-or-later` ([ADR 0014](../decisions/0014-licence-spdx-id/)). Engineering proceeds with both; cheap to change until the first release.
 
 **Resolved (2026-10-20 to 2026-10-22), for reference:**
 - Version and loader: 1.21.1 NeoForge, with 1.20.1 Forge as the fallback ([ADR 0001](../decisions/0001-minecraft-version-and-loader/)).

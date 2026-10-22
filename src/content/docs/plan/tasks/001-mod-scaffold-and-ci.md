@@ -24,7 +24,7 @@ Acceptance criteria satisfied: none directly. Enables testing of M1–M4 ([feasi
 
 ## Files owned
 
-All files in the **core-mod repository** (its own repo, per ADR 0010): Gradle build and wrapper, `src/main`, `src/test`, game-test sources, CI workflow, `README.md`, `LICENSE` (LGPL-3.0 per [ADR 0009](../../../design/decisions/0009-licensing/); ship the GPL-3.0 text that LGPL-3.0 builds on, as well).
+All files in the **core-mod repository** (its own repo, per ADR 0010): Gradle build and wrapper, `src/main`, `src/test`, game-test sources, CI workflow, `README.md`, `LICENSE` (LGPL-3.0 per [ADR 0009](../../../design/decisions/0009-licensing/); ship the GPL-3.0 text that LGPL-3.0 builds on, as well). SPDX id in metadata: `LGPL-3.0-only` ([ADR 0014](../../../design/decisions/0014-licence-spdx-id/)).
 
 Layout: a Gradle multi-project build with three subprojects (ADR 0010, ADR 0011):
 
@@ -53,7 +53,7 @@ Provides the subproject layout and build for tasks 003–024 and 026. Defines no
 
 ## Conventions
 
-- Mod id `pollutioncraft` (provisional). Parchment mappings where available.
+- Base package and Maven group `io.github.pollutioncraft` ([ADR 0013](../../../design/decisions/0013-java-package-namespace/)); `…` in the table above stands for it. Mod id `pollutioncraft` (provisional). Parchment mappings where available.
 - **Platform** (ADR 0001):
   - Minecraft 1.21.1, NeoForge 21.1.x pinned to **21.1.264** (the pack's build), Java 21 toolchain.
   - Build with NeoForge's Gradle tooling (ModDevGradle), not ForgeGradle.

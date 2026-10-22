@@ -172,7 +172,7 @@ Grid unit: **one Minecraft chunk (16 × 16 blocks, full height)**, keyed by chun
 | `persistent` | `double` | Pollution only fixed decay removes. Always 0 in the alpha; used for M7 ([ADR 0004](../decisions/0004-absorption-anti-spam/)). |
 | `emittedLastInterval` | `double` | Gross emission in this chunk last interval |
 | `dominantSource` | `long` (BlockPos) + `double` rate | Highest-rate emitter last interval; the siege target |
-| `lastIntervalStats` | transient, not saved | `spreadIn`, `spreadOut`, `absorbed`, `decayed` from the last interval; read by the debug commands and overlay |
+| `lastIntervalStats` | `ChunkIntervalStats`, transient, **never saved** | `spreadIn`, `spreadOut`, `absorbed`, `decayed` (PU) from the last interval; read by the debug `rates` command and the F3 overlay. For a chunk that survives pruning: Δlocal = `emittedLastInterval + spreadIn − spreadOut − absorbed − decayed`. The sub-`epsilon` remainder of a pruned chunk is dropped and not recorded. |
 | `absorberCache` | per-type counts + `sampledAtActiveTick` | Last absorber sample; used while the chunk is unloaded |
 
 Per world, the global record:

@@ -24,6 +24,7 @@ Design for the v0.1 alpha (M1–M4 in the [brief](../../brief/overview/)), plus 
 | [0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) | Independent gap-filler; compat is the single integration layer (amends 0005, 0010) | **accepted** |
 | [0013](../decisions/0013-java-package-namespace/) | Base package and Maven group `io.github.pollutioncraft` | proposed (§9 Q11) |
 | [0014](../decisions/0014-licence-spdx-id/) | SPDX id `LGPL-3.0-only` for our mods (refines 0009) | proposed (§9 Q11) |
+| [0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/) | Compat reaches target mods with **no build-time dependency**, via the ordered **integration ladder**: data mapping → observe-only string-targeted Mixin → other options → reflection last (user's order). GTM lands on the Mixin rung; GTM leaves core's build and the pack holds the only GTM pin. Applies to **every** repo; allowed build deps are only internal artifacts, Minecraft modding requirements (Minecraft, NeoForge/FML, MDG, Parchment, Mixin/MixinExtras), and generic Java utilities. CI may download the pack's pinned target jars for tests. Supersedes parts of 0005, 0011, 0012 and task 001's GTM setup. | **accepted** |
 
 This page stays `proposed` until 0008 and 0011 are decided. Where it describes an accepted ADR, that ADR is authoritative.
 
@@ -119,6 +120,8 @@ repo: pollutioncraft (core mod)                       LGPL-3.0
              absorber sampler · siege AI · siege groups · commands · config
              └── compat.*       alpha only, moves to the compat repo later:
                  compat.minecraft (vanilla emitter mappings, data) · compat.gtceu (GTM adapter, behind the GTM version gate)
+                 · compat.common (mixin config plugin, version gate) · compat.gtceu.mixin (observe-only @Pseudo mixin)
+                 No target mod on any compile classpath (ADR 0015).
 
 repo: pollutioncraft-compat   (later)  THE integration layer: code adapters, tag entries, and
                                        ALL emitter mappings (vanilla too) for every mod (incl. gap-filler)   LGPL-3.0
@@ -131,7 +134,7 @@ repo: modpack                 (exists) packwiz; pins exact versions of all three
 **Dependency direction** ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/)):
 - **core → nothing.** It never imports compat or the gap-filler. Standalone it loads, but **emits nothing**: it ships no emitter mappings, not even vanilla ones ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) §2).
 - **gap-filler → nothing.** It is a normal tech mod, reusable in other packs, and contains no pollution code or tags.
-- **compat → core (`…api.*` only) + each target mod** (GTM, Mekanism, AE2, gap-filler, …), each optional. It is the only place where another mod meets pollution.
+- **compat → core (`…api.*` only) + each target mod** (GTM, Mekanism, AE2, gap-filler, …), each optional. It is the only place where another mod meets pollution. **Per [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)):** the target-mod relation is **runtime only**: compat compiles against core and nothing else; target mods are reached through the integration ladder (data mapping, then Mixin, then other options, then reflection), each gated on the target being loaded.
 - **Pack → pins all three.** Compat is **required** for our pack: without it nothing emits and non-vanilla mobs don't siege.
 - **Rule:** any feature that reads or changes pollution lives in core (generic) or compat (bridge), never in the gap-filler. A gap-filler scrubber, for example, exposes an activity signal, and compat turns it into pollution removal. That needs a removal call in core's API, to be added with M5.
 
@@ -141,7 +144,7 @@ repo: modpack                 (exists) packwiz; pins exact versions of all three
 
 The same scheme applies to compat and the gap-filler.
 
-**One artifact per repo** (ADR 0011 §1). Compat compiles against an exact version of the core mod jar `pollutioncraft-1.21.1` from GitHub Packages, plus the gap-filler's mod jar, and declares a runtime range `[X.Y, X+1)` on core. Because the jar also contains internals, the contract is enforced by **build checks**, not the compiler:
+**One artifact per repo** (ADR 0011 §1). Compat compiles against an exact version of the core mod jar `pollutioncraft-1.21.1` from GitHub Packages ~~plus the gap-filler's mod jar~~ (ADR 0015: core only), and declares a runtime range `[X.Y, X+1)` on core. Because the jar also contains internals, the contract is enforced by **build checks**, not the compiler:
 - **API purity in core:** `…api.*` must not reference our internal packages.
 - **Adapter imports** (core's `…compat.*` now, compat later): only `…api.*` may be imported from our mod.
 
@@ -187,7 +190,7 @@ Both records carry a `dataVersion` int. Local pollution = `absorbable + persiste
 1. **Config/datapack-driven** (no code): `block id or tag → rate`, active while a configured boolean block-state property (for example `lit` or `active`) is true. **Decided** ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) §2): core owns the engine and format only; **all** mappings, vanilla included, ship in compat as data (`…compat.minecraft` and so on). Core's own tests use a test-only mapping. The vanilla M1 GameTest runs with the in-core compat package during the alpha, and in the compat repo after the split.
    - **Vanilla rollout (user decision, 2026-10-22):** the **furnace comes first**, as the first slice. It is the only mapping and the only M1 GameTest target at first. The smoker, blast furnace, and other vanilla blocks follow as later mappings in `…compat.minecraft`, using the same format with no engine changes.
    - **Assumption:** the furnace exposes a `lit` block-state property; the smoker and blast furnace are expected to as well. Not checked this session; the first slice verifies it for the furnace.
-2. **Code adapters** (compat: an isolated package in core for the alpha, the compat mod later) for mods whose activity is not visible in block state. GTM is the first, via spike [003](../../plan/tasks/003-spike-gregtech-activity-hook/). The GTM adapter has a **version gate** ([ADR 0001](../decisions/0001-minecraft-version-and-loader/)): it activates only for the supported GTM range (initially the 8.0.0 snapshot line), and otherwise logs once and stays inactive.
+2. **Code adapters** (compat: an isolated package in core for the alpha, the compat mod later) for mods whose activity is not visible in block state. GTM is the first, via spike [003](../../plan/tasks/003-spike-gregtech-activity-hook/). **Per [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)): no compiled code against the target; every new mod goes down the integration ladder, in order, stopping at the first rung that fits:** (1) data mapping; (2) an observe-only, string-targeted `@Pseudo` Mixin with `remap = false`, gated by a mixin config plugin that checks `LoadingModList` and the target version; (3) other options (NeoForge capabilities/events, the target's own hooks); (4) reflection, last. Rates are always data; rungs 2–4 only push an activity signal through `…api.*` (a `setActive`-style call, shape in task 005/011). The rung criteria are in the ADR. **GTM:** **Fact (pinned jar, `javap`):** single-block machines have no activity block state (`MetaMachineBlock` adds only facing properties; `active` is a model property), and only `ActiveBlock` casings (coils, fusion casings) toggle a real `active` block state. So rung 1 fails (it would miss machines and double count casings), and GTM goes to **rung 2**: inject at `RETURN` of `RecipeLogic.setStatus(Status)`, shadowing `isWorking()`, `getBlockPos()`, `getLevel()` (Minecraft types only). Spike 003 verifies.
 
 **Interval step (M2, M3).** Every `spreadIntervalTicks` (config; **default 20 = 1 s**, since Minecraft runs at 20 ticks per second), the scheduler snapshots the field and processes it in slices across that interval. For each chunk, computed from the snapshot so the order does not matter:
 1. Add the pending emissions.
@@ -271,6 +274,7 @@ Engineering's detail: [task 001](../../plan/tasks/001-mod-scaffold-and-ci/) and 
   - Adapters import only `…api.*` from our mod (3.5), enforced by a build check.
   - Adapters with a version-sensitive target carry a version gate. The GTM gate covers the 8.0.0 snapshot line.
   - The GTM adapter (task 012) sets the pattern for the rest.
+  - **Per [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)):** no target mod on any compile classpath in any repo; a build check allowlists only internal artifacts, Minecraft modding requirements, and generic Java utilities. Each adapter's brief records the integration-ladder evidence (which rungs were tried, why each failed). Mixins only in `…compat.<modid>.mixin`, observe-only: `@Pseudo`, string `targets`, `remap = false`, `@Inject` with `require = 0` and never `cancellable`; no `@Overwrite`, `@Redirect`, or `@Modify*`; one optional mixin config per target, applied only when its plugin finds the target in a supported version. Core has no Mixins. Reflection (`java.lang.invoke`, `Class.forName`) only in `…compat.*` adapters that documented reaching rung 4; reflection bindings are compiled code, never read from config or datapacks. Adapters may also import `…compat.common`.
 - **State:** the server is authoritative. The client receives only read-only data. The alpha has no client→server packets.
 - **Security:**
   - Mutating commands need permission level 2.
@@ -281,6 +285,7 @@ Engineering's detail: [task 001](../../plan/tasks/001-mod-scaffold-and-ci/) and 
   - `core` has JUnit tests: diffusion, equilibrium, the anti-spam curve, aggression, and monotonic pressure.
   - Adapters have GameTests per acceptance criterion ([feasibility 5](../../plan/feasibility/#5-testability-of-the-alpha-acceptance-criteria)).
   - Compat adapters get one GameTest each, run only when the target mod is present.
+  - **Per [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)):** unit tests cover mappings, the mixin plugin's gate (fake loading-mod list), and handler logic; reflection bindings (rung 4) also get stub-class tests. Mixin injection itself is only testable with the real target, so a **with-targets GameTest job** (required on `…compat.*` changes, and nightly) copies target jars into the run's `mods/` folder from the pack's pins and fails on a zero injection count. The build itself declares no target.
 
 ## 5. Non-functional budget
 
@@ -313,6 +318,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | User rule: time frozen when the server is empty | 3.6 `activeTicks`; 3.4 gate | Covered |
 | User rule: any loaded chunk can be attacked | 3.4; [ADR 0008](../decisions/0008-siege-in-unattended-chunks/) | Proposed |
 | User ask: integrations (GT, AE2, …) | 3.1 compat (in core for the alpha); [ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) | Thermal and IC2 removed; substitutes open (§9 Q3) |
+| User rule: no repo of ours has a build-time dependency on target mods (runtime presence only; exceptions: internal, modding requirements, generic Java utilities); GTM transitive deps not pinned | 3.3 emission sources; 4 adapter rule; [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/) | Accepted |
 | User ask: gap-filler mod | 3.1; [ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) (independent, integrated via compat) | Post-alpha; content not designed |
 | Licensing | [ADR 0009](../decisions/0009-licensing/) | Accepted |
 | Platform (version, loader, Java, GTM pin) | [ADR 0001](../decisions/0001-minecraft-version-and-loader/); 3.3 GTM version gate | Accepted |
@@ -326,7 +332,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | # | Risk or unknown | Cheapest spike that retires it |
 | --- | --- | --- |
 | R1 | Siege AI unreliable or too costly | Spike [004](../../plan/tasks/004-spike-siege-ai/) |
-| R2 | No clean "GT machine is working" hook | Spike [003](../../plan/tasks/003-spike-gregtech-activity-hook/). Fallback: emit at mufflers, or use config block-state emitters. |
+| R2 | No clean "GT machine is working" hook | Spike [003](../../plan/tasks/003-spike-gregtech-activity-hook/), now also proving the rung-2 Mixin hook on `RecipeLogic.setStatus` without GTM on the compile classpath (ADR 0015). Fallback: emit at mufflers, or use config block-state emitters. |
 | R3 | Global pressure makes a new base unwinnable | `core` simulation of a scripted 20-hour curve; half a day |
 | R4 | GTM 1.21.1 snapshot unstable | **Spike [006](../../plan/tasks/006-spike-gtm-1-21-readiness/) done; passed narrowly** ([findings](../../plan/tasks/006-findings/)). Remaining: #5293 (crash with other mods): the pack smoke test runs on every mod addition. #5447 (solid boilers): reproduce before steam progression is relied on. No 8.0 date: bump snapshots deliberately, with a smoke test and a world-load check. Fallback: 1.20.1 Forge ([ADR 0001](../decisions/0001-minecraft-version-and-loader/)). |
 | R5 | **M7 testability.** The brief has adopted the floor wording: past the cutoff, steady-state local pollution at an emitting base ≥ `r × E / λ`, regardless of absorbers, and the floor drops when emission drops. **The user still has to confirm this keeps their intent.** | User confirmation (§9 Q6) |
@@ -337,13 +343,14 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | R11 | Modrinth may refuse majority-AI projects (§6, §6.2 of its rules), and CurseForge's AI policy is unchecked | Re-read both policies and ask Modrinth support before the first upload ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §8.2) |
 | R12 | Core alone emits nothing; a pack without compat is silently inert | Pack smoke test asserts compat is present. During the alpha this holds automatically, since compat ships inside core. |
 | R10 | Despawn and entity-ticking behaviour in forced chunks (section 3.4 assumptions) | Spike 004 extension, as R7 |
+| R13 | Mixin hooks (and any reflection bindings) drift silently when a target renames members: no compiler help, and `require = 0` turns a miss into a no-op ([ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)) | Version gate in the mixin plugin (unverified target versions are never transformed) plus the with-targets GameTest job with injection counting (nightly and on `…compat.*` changes). Spike 003 proves the GTM hook against the pinned jar. |
 
 ## 8. Implementation guidance for engineering-lead
 
-1. **Platform (ADR 0001, accepted):** Minecraft 1.21.1, NeoForge 21.1.x (pin the pack's exact build, currently 21.1.264), Java 21, NeoForge's Gradle tooling. GTM is a compile/runtime dependency at the pinned snapshot build. Artifact suffix `1.21.1`.
+1. **Platform (ADR 0001, accepted):** Minecraft 1.21.1, NeoForge 21.1.x (pin the pack's exact build, currently 21.1.264), Java 21, NeoForge's Gradle tooling. ~~GTM is a compile/runtime dependency at the pinned snapshot build.~~ **Per [ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)):** GTM is not a dependency of our build at all; the pack pins it. Dev runs get GTM from the dev Prism instance or a run's `mods/` folder. Artifact suffix `1.21.1`.
 2. **Repo layout per ADR 0010, artifacts per ADR 0011:**
    - **Core-mod repo:** subprojects or source sets `core` (plain Java, internal), `api` (the `…api.*` contract), and `mod`, all bundled into **one** published jar, `pollutioncraft-1.21.1`.
-   - The GTM adapter goes in `…compat.gtceu` inside `mod`.
+   - The GTM adapter goes in `…compat.gtceu` inside `mod`, as an observe-only Mixin (integration-ladder rung 2, ADR 0015).
    - Build checks:
      - `core` has no Minecraft imports;
      - nothing in `mod` imports `…compat.*` except the `ModList`-guarded entry point;
@@ -353,7 +360,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
    - Ship `LICENSE` (LGPL-3.0 plus the GPL-3.0 text, [ADR 0009](../decisions/0009-licensing/)).
    - Set up `maven-publish` to GitHub Packages for the single mod jar (snapshots from `main`, releases on tag), the API binary-compatibility check, and the tier-2 release workflow (GitHub Release, Modrinth, CurseForge) with the secrets and permissions in [ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §5.
    - **Pack repo** (exists): pins our mod by exact version and hash, like any third-party mod.
-   - The compat repo is created at the split trigger, and the gap-filler repo when content starts (ADR 0010). The gap-filler builds standalone. Compat builds nightly against core and gap-filler snapshots (ADR 0011).
+   - The compat repo is created at the split trigger, and the gap-filler repo when content starts (ADR 0010). The gap-filler builds standalone. Compat builds nightly against core snapshots (ADR 0011), plus the with-targets GameTest job; it never compiles against the gap-filler or other targets (ADR 0015).
 3. **Shared interfaces first** (task 005): the `ChunkPollution` record (two pools), `PollutionField`, `DiffusionStep`, `AbsorptionModel`, `GlobalPressure` (taking `activeTicks`), `AggressionPolicy` (all in `core`), and the public `PollutionApi` (in `api`).
 4. Build order: field and diffusion → storage, scheduler, `activeTicks` → emitter engine + furnace mapping in `…compat.minecraft` + debug commands (M1, M2) → other vanilla mappings → sampler and curve (M3) → aggression, siege, siege groups if ADR 0008 is accepted (M4) → GTM adapter with version gate (isolated package in core).
 5. Keep GTM's `environmentalHazards = false` in the pack.
@@ -378,6 +385,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 10. **Later, not needed for the alpha:** the net-zero cutoff stage (proposal: HV), starting numbers (emission rates, thresholds, spread, floor value; tuned in playtests), and **platform releases** of our mods (deferred by the user; `PUBLISH_PLATFORMS` stays off, ADR 0011 §8.1).
 11. **Package namespace and licence id** (task 001): confirm `io.github.pollutioncraft` (the GitHub org PollutionCraft, from the docs repo remote; [ADR 0013](../decisions/0013-java-package-namespace/)) and `LGPL-3.0-only` rather than `-or-later` ([ADR 0014](../decisions/0014-licence-spdx-id/)). Engineering proceeds with both; cheap to change until the first release.
 
+
 **Resolved (2026-10-20 to 2026-10-22), for reference:**
 - Version and loader: 1.21.1 NeoForge, with 1.20.1 Forge as the fallback ([ADR 0001](../decisions/0001-minecraft-version-and-loader/)).
 - Global and local model: hybrid, with `activeTicks` and gross emission ([ADR 0002](../decisions/0002-pollution-model-global-local/)).
@@ -390,6 +398,8 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 - One artifact per repo, two-tier publishing, and AI disclosure ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/)).
 - Independent gap-filler, all emitter mappings in compat, gap-filler machines inert elsewhere ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/)).
 - Furnace as the first emitter slice.
+- GTM's transitive dependencies are not pinned (user, 2026-10-22; task 001 condition 3).
+- Compat without build dependencies, accepted ([ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/)): the rule covers every repo, with three exceptions (internal artifacts; Minecraft modding requirements; generic Java utilities such as Apache Commons, Lombok, Jackson). CI may download the pack's pinned target jars when a job needs them. Integration ladder: data mapping → Mixin → other → reflection last.
 
 ## 10. Alignment with engineering's docs (for Heimdall)
 
@@ -401,6 +411,7 @@ As of 2026-10-22, [feasibility](../../plan/feasibility/), the [roadmap](../../pl
 | 2 | Empty-server gate | Tasks 007 and 016 implement the `activeTicks` freeze. Whether simulation and attacks also freeze waits on §9 Q2. |
 | 3 | Pack inertness without compat (R12) | Pack smoke test should assert compat is present once it is a separate jar (after task 027). |
 | 4 | Pre-upload checks | Task 026 checklist: Modrinth/CurseForge AI policy, AI-disclosure flag, no AI-generated images (R11). |
+| 5 | Compat without build dependencies ([ADR 0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/), accepted) | Task 001 follow-up (engineering-lead to brief now): remove GTM from `mod`'s build (compileOnly, `gtmRuntime`, GTCEu repo, `verifyGtmHash`, `gtceu_sha256`, catalog entry); add the compile-classpath, Mixin-placement/observe-only, and reflection-confinement checks; allow `…compat.common` in the adapter-import check; add the with-targets GameTest CI job. Task 001's "No Mixins in this task" stays; the first mixin config comes with 012. Tasks 003, 012, 027, 028 and the roadmap are updated. |
 
 ## Sources
 

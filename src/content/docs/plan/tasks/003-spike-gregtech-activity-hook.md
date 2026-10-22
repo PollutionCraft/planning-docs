@@ -17,6 +17,8 @@ Answer, with evidence from running code against the **pinned GTM snapshot** `8.0
 3. Can the hook live in an optional integration package that only loads when GTM is present, so the core mod still runs without GTM? ([Feasibility, adapters](../../feasibility/#adapters-to-other-mods-post-alpha-seam))
 4. **Version gate:** can the adapter read the loaded GTM version and stay inactive outside a configured supported range, logging once? Show it with the pinned snapshot (active) and with an out-of-range version, for example GTM 7.0.2, or a faked range (inactive, one log line, core still runs).
 
+5. **No build dependency, integration ladder ([ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/), accepted):** rung 1 (data mapping) is already ruled out for single-block machines: `javap` on the pinned jar shows `MetaMachineBlock` has no activity block state (`active` is a model property), and only `ActiveBlock` casings toggle a real `active`. Prove **rung 2**: a `@Pseudo @Mixin(targets = "com.gregtechceu.gtceu.api.machine.trait.recipe.RecipeLogic", remap = false)` injecting at `RETURN` of `setStatus(RecipeLogic$Status)`, handler taking only `CallbackInfo`, `@Shadow`ing `isWorking()`, `getBlockPos()`, `getLevel()`, **with GTM absent from the compile classpath**, gated by a mixin config plugin on `LoadingModList` and the GTM version. Check: it compiles and applies; `setStatus` fires server-side on every transition, for single blocks and multiblock controllers; shadowing the superclass members `getBlockPos()`/`getLevel()` works; no refmap is needed; the hook is a no-op (no crash) with GTM absent and with an out-of-range version; and measure question 2 with it. Only if rung 2 fails: say why, check rung 3, then show rung 4 (reflection).
+
 Already answered by design, so not in scope: GTM's environmental-hazard system is kept off (`environmentalHazards = false`, [ADR 0005](../../../design/decisions/0005-custom-mod-vs-existing-mods/)).
 
 Feeds requirement M1 and task 012.
@@ -33,7 +35,7 @@ Spike branch `spike/003-gt-activity` in the mod repo (not merged). Heimdall file
 
 A findings note covering:
 
-- the API entry points used (class and method, GTM version)
+- the API entry points used (class and method, GTM version), and the integration-ladder evidence: which rung was reached and why earlier rungs failed
 - a sample snippet
 - the measured cost
 - whether optional loading works

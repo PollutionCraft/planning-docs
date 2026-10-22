@@ -10,6 +10,8 @@ owner: Heimdall
 2. **Package name and licence ID** rest on ADR 0013 and ADR 0014, both still `proposed`. A package rename is a mechanical change; do it before task 005 if ADR 0013 changes.
 3. **Transitive GTM dependencies** are not hash-pinned individually (GTM is resolved non-transitively and its jar-in-jar covers runtime). Decide in task 025/022 whether the pack pin must cover them.
 
+**Follow-up change ([ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/), accepted 2026-10-22):** GTM leaves this repo's build entirely: no `compileOnly`, no `gtmRuntime`, no GTCEu repository, no `verifyGtmHash`/`gtceu_sha256`, no catalog entry. The pack is the only GTM pin. That **dissolves condition 1** (one pin, in the pack) and **condition 3 is resolved by the user**: GTM's transitive dependencies are not pinned. `gtceu` stays `optional` in `neoforge.mods.toml`. `runGameTestServer` is unchanged (already GTM-free); a separate with-targets GameTest job is added. New build checks: no target mod on the compile classpath; `@Mixin` classes only in `…compat.<modid>.mixin` and observe-only (`@Pseudo`, string targets, `remap = false`, no `@Overwrite`/`@Redirect`/`@Modify*`, never `cancellable`); reflection only in `…compat.*`; the adapter-import check also allows `…compat.common`. The "No Mixins in this task" line below stays true for 001: Mixins arrive with task 012 under ADR 0015's integration ladder. Allowed build dependencies are only internal artifacts, Minecraft modding requirements (Minecraft, NeoForge/FML, MDG, Parchment, Mixin/MixinExtras), and generic Java utilities (e.g. Apache Commons, Lombok, Jackson, JUnit, ArchUnit). The with-targets CI job may download the pack's pinned target jars. Engineering-lead briefs the follow-up now; until it merges, the build below is what exists.
+
 **Not blocked.** [ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/) is accepted: Minecraft 1.21.1, NeoForge 21.1.x, Java 21.
 
 ## Goal
@@ -64,10 +66,10 @@ Provides the subproject layout and build for tasks 003–024 and 026. Defines no
   - Minecraft 1.21.1, NeoForge 21.1.x pinned to **21.1.264** (the pack's build), Java 21 toolchain.
   - Build with NeoForge's Gradle tooling (ModDevGradle), not ForgeGradle.
   - Bump the NeoForge pin only on purpose.
-- **GTM dependency:** add GregTech CEu Modern at the pinned snapshot build `8.0.0-SNAPSHOT+20261017-095459-36a6b38`, verified by hash, as a dev runtime and compile dependency of `mod` only (the `…compat.gtceu` adapter needs it). Never `latest-1.21`.
+- **GTM dependency** (*superseded by [ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/), accepted: removed from the build in the follow-up*): add GregTech CEu Modern at the pinned snapshot build `8.0.0-SNAPSHOT+20261017-095459-36a6b38`, verified by hash, as a dev runtime and compile dependency of `mod` only (the `…compat.gtceu` adapter needs it). Never `latest-1.21`.
   - Source: the jar re-hosted by pack task 025, or GTM's Maven if it serves that exact build.
   - Mark it optional in the mod metadata: core must load without GTM.
-- No Mixins in this task.
+- No Mixins in this task. (Under [ADR 0015](../../../design/decisions/0015-compat-without-build-dependencies-on-target-mods/), accepted, Mixins become rung 2 of the integration ladder from task 012 on; core itself never has Mixins.)
 
 ## Tests to write first
 

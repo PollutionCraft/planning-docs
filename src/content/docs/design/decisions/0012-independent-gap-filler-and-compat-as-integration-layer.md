@@ -4,7 +4,7 @@ status: accepted
 owner: Mimir
 ---
 
-- **Status:** accepted 2026-10-20 by the user. **It amends [ADR 0005](../0005-custom-mod-vs-existing-mods/) and [ADR 0010](../0010-four-repositories/)**, which said the gap-filler hard-depends on core and its mobs join sieges through a core tag. The amended parts carry status notes there. Its two sub-questions (sections 2 and 5) were resolved by the user on 2026-10-20.
+- **Status:** accepted 2026-10-20 by the user. **It amends [ADR 0005](../0005-custom-mod-vs-existing-mods/) and [ADR 0010](../0010-four-repositories/)**, which said the gap-filler hard-depends on core and its mobs join sieges through a core tag. The amended parts carry status notes there. Its two sub-questions (sections 2 and 5) were resolved by the user on 2026-10-20. **Amended by [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/)):** compat → target mods (gap-filler included) becomes a runtime-only relation; compat compiles against no target, and the gap-filler exposes activity as block state so compat maps it with data.
 - **Context:** The user wants the gap-filler built like any other tech mod, with no dependency on core, so it can be reused in other packs. Compat becomes **the** standard integration layer: everything else reaches pollution through it, including the gap-filler's own machines and mobs.
 
 ## Decision
@@ -15,6 +15,7 @@ owner: Mimir
 core (pollutioncraft)     → nothing
 gap-filler                → nothing
 compat                    → core (`…api.*` only) + each target mod (GTM, Mekanism, AE2, gap-filler, …), each optional
+                            (ADR 0015, accepted: runtime only, never on compat's compile classpath)
 pack                      → pins exact versions of all three
 ```
 
@@ -82,7 +83,7 @@ Unchanged from [ADR 0005](../0005-custom-mod-vs-existing-mods/):
 **Costs:**
 - Compat's surface grows; it becomes a required, frequently released mod.
 - The gap-filler must expose observable activity signals for compat to read.
-- The gap-filler publishes its own mod jar (one artifact) for compat to compile against ([ADR 0011](../0011-cross-repo-artifacts-and-versioning/)).
+- The gap-filler publishes its own mod jar (one artifact) ~~for compat to compile against~~ *(amended by ADR 0015: compat never compiles against it; it maps the gap-filler's block-state signals as data)* ([ADR 0011](../0011-cross-repo-artifacts-and-versioning/)).
 
 ## Blast radius / reversibility
 

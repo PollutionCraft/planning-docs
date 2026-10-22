@@ -4,7 +4,7 @@ status: accepted
 owner: Mimir
 ---
 
-- **Status:** accepted 2026-10-20 by the user. **The "one repository, multi-project build" part is superseded by [ADR 0010](../0010-four-repositories/)** (four separate repos). The three-mod target, the two-mod alpha, the dependency direction, and the adapter rule remain accepted. **The gap-filler's dependency on core, and its siege tags, are amended by [ADR 0012](../0012-independent-gap-filler-and-compat-as-integration-layer/)**: the gap-filler depends on nothing, and compat is the single integration layer.
+- **Status:** accepted 2026-10-20 by the user. **The "one repository, multi-project build" part is superseded by [ADR 0010](../0010-four-repositories/)** (four separate repos). The three-mod target, the two-mod alpha, the dependency direction, and the adapter rule remain accepted. **The gap-filler's dependency on core, and its siege tags, are amended by [ADR 0012](../0012-independent-gap-filler-and-compat-as-integration-layer/)**: the gap-filler depends on nothing, and compat is the single integration layer. **Accepted 2026-10-22: [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/)** would make adapters reach target mods with no build-time dependency, through an ordered integration ladder (data mapping → observe-only Mixin → other options → reflection last), and adds clauses to the adapter rule.
 - **Context:**
   - **Custom code is needed.** No existing mod links pollution to mobs attacking its source. The prior art checked: GTM hazards, Pollution of the Realms, Create: Smog, Improved Mobs, and digging-mob mods ([architecture 2](../../architecture/#2-prior-art)).
   - **The user wants 2, maybe 3 mods:**
@@ -51,6 +51,7 @@ Putting compat into the gap-filler mod would tie integration releases to content
 - It loads only after a `ModList` presence check, and no class in it is referenced before that check.
 - It uses the public API only, never core internals.
 - Core starts and passes its tests with no target mod installed.
+- *Additions (accepted, [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/)):* no target mod on any compile classpath; ladder evidence recorded per adapter; Mixins observe-only and confined to `…compat.<modid>.mixin`; reflection only as the last rung, confined to `…compat.*`; every hook covered by a with-targets GameTest.
 
 Splitting compat out is then a move of packages into the compat repo, which depends on core's published API ([ADR 0011](../0011-cross-repo-artifacts-and-versioning/)), with no code changes.
 

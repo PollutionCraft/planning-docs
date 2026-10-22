@@ -4,8 +4,8 @@ status: proposed
 owner: Mimir
 ---
 
-- **Status:** proposed overall. **§4 (hosting) is decided by the user (2026-10-22): two-tier publishing**, superseding my earlier GitHub Pages recommendation. §1 (one artifact per repo) is decided by the user (2026-10-22). §§2–3 and 5–7 remain proposed for engineering-lead and user confirmation. §8: platform releases during the alpha are deferred (switchable), and AI disclosure is decided, with a Modrinth rule conflict flagged. The third-party compile route is still open.
-- **Context:** [ADR 0010](../0010-four-repositories/) splits core, compat, gap-filler, and pack into separate repos. Compat must compile against core's public API **and against the gap-filler's artifact** across repos. Per [ADR 0012](../0012-independent-gap-filler-and-compat-as-integration-layer/), core and the gap-filler depend on nothing; compat depends on both. The pack must pin a working combination.
+- **Status:** proposed overall. **§4 (hosting) is decided by the user (2026-10-22): two-tier publishing**, superseding my earlier GitHub Pages recommendation. §1 (one artifact per repo) is decided by the user (2026-10-22). §§2–3 and 5–7 remain proposed for engineering-lead and user confirmation. §8: platform releases during the alpha are deferred (switchable), and AI disclosure is decided, with a Modrinth rule conflict flagged. The third-party compile route is still open. **Amended by [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/)):** compat no longer compiles against the gap-filler jar or builds nightly against its snapshots; it compiles against core only.
+- **Context:** [ADR 0010](../0010-four-repositories/) splits core, compat, gap-filler, and pack into separate repos. Compat must compile against core's public API ~~**and against the gap-filler's artifact**~~ *(ADR 0015: core only; the gap-filler is reached at runtime)* across repos. Per [ADR 0012](../0012-independent-gap-filler-and-compat-as-integration-layer/), core and the gap-filler depend on nothing; compat depends on both. The pack must pin a working combination.
 
 ## Prior art
 
@@ -97,7 +97,7 @@ Compat keeps the full mod jar on its runtime classpath for GameTests, as before.
 | --- | --- | --- | --- |
 | core | Build, unit tests, GameTests, API compatibility check. On `main`: publish the `-SNAPSHOT` mod jar to GitHub Packages. | — | Tag `vX.Y.Z`: tier-2 release workflow (below) |
 | gap-filler | Build and test standalone (no core). On `main`: snapshots to GitHub Packages. | — | Tag: same tier-2 workflow |
-| compat | Build and test against the **pinned** core and gap-filler jars (GitHub Packages, `GITHUB_TOKEN`), plus the adapter-import check | Nightly build against core's and the gap-filler's latest **snapshots** | Tag, after bumping pins and ranges: same tier-2 workflow |
+| compat | Build and test against the **pinned** core jar (GitHub Packages, `GITHUB_TOKEN`), plus the adapter-import check. *(ADR 0015: no gap-filler or other target jar at compile time; a with-targets GameTest job supplies target jars at run time from the pack's pins.)* | Nightly build against core's latest **snapshot**, plus the with-targets GameTest job | Tag, after bumping pins and ranges: same tier-2 workflow |
 | pack | packwiz refresh plus the dedicated-server smoke test | — | Tag, after updating pins |
 
 **Release workflow shape (same in core, compat, and gap-filler):**
@@ -116,7 +116,7 @@ The upload tooling (a Gradle plugin or a GitHub Action) is engineering's choice.
 | --- | --- | --- |
 | `GITHUB_TOKEN` | Snapshot workflow on `main` | `permissions: contents: read, packages: write` |
 | `GITHUB_TOKEN` | Release workflow | `contents: write` (GitHub Release), `packages: write` |
-| `GITHUB_TOKEN` | Compat CI (reading core/gap-filler packages) | `packages: read`, **plus** granting the compat repo read access in each package's settings |
+| `GITHUB_TOKEN` | Compat CI (reading core packages; ADR 0015: no gap-filler package) | `packages: read`, **plus** granting the compat repo read access in each package's settings |
 | `MODRINTH_TOKEN` | `release` environment secret | A personal token limited to creating versions |
 | `CURSEFORGE_TOKEN` | `release` environment secret | A CurseForge upload API token |
 | Modrinth project id, CurseForge project id | Repo **variables** (not secrets) | — |

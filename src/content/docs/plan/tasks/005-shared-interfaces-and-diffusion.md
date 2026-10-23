@@ -1,8 +1,17 @@
 ---
 title: "005: Shared interfaces, field, and diffusion step"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+**Done: accepted with follow-ups (2026-10-22).** Merged as PR #2 (commit 7b192dc). Checked against the brief by reading the merged code and the engineer and lead reports; project-owner did not re-run the build. Reported: `./gradlew build runGameTestServer` passes with 27 tests, including the API-purity and adapter-import checks.
+
+Follow-ups, none blocking:
+
+1. **Determinism test is a regression guard only.** It cannot fail against a mutant (lead's ruling). Order-independence rests on the code design: ascending key order and fixed-order neighbour pull.
+2. **Task 007 must measure** one full step at 2,500 chunks against the 0.5 ms/tick budget ([architecture 5](../../../design/architecture/#5-non-functional-budget)). `DiffusionStep` allocates a `TreeSet`/`HashMap` per run. If it does not fit, switch to primitive arrays.
+3. **Task 010:** reset `dominantSource` each interval when a chunk stops emitting.
+4. **ADRs 0013 and 0014 are still proposed.** The package name could still change; a rename is mechanical.
 
 **Not blocked.** Task [001](../001-mod-scaffold-and-ci/) is done and [ADR 0003](../../../design/decisions/0003-storage-and-simulation/) is accepted. **Must merge before every other P1–P3 task.**
 

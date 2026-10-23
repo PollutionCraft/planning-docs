@@ -95,7 +95,7 @@ The pack repo already exists (packwiz; 1.21.1 NeoForge; GTM 8.0.0 snapshot) and 
 
 **Order change, user decision 2026-10-22:** before spike 003 starts, build the debugging and first-emitter path: 005 → 007 (+008) → 010 → 009, 011 (furnace adapter), then 030. Spike 003 follows, since GTM detection is easier to judge with the pollution readout in hand. 029 and 012 stay later.
 
-- [**005**](../tasks/005-shared-interfaces-and-diffusion/) Shared interfaces:
+- [**005**](../tasks/005-shared-interfaces-and-diffusion/) **Done**, accepted with follow-ups (007 measures step cost; 010 resets `dominantSource`). Shared interfaces:
   - in the `…api.*` packages (bundled in the mod jar): `PollutionApi` (emit, `getLocal`, `getPressure`, `isAggressive`, per [architecture 3.5](../../design/architecture/#35-external-interfaces-and-contracts-public-api-consumed-by-adapters-compat-and-content)), referencing only Minecraft, NeoForge, and the JDK (API-purity check);
   - in `core`: `ChunkPollution`, `PollutionField`, `DiffusionStep` (implemented, with unit tests), and `AbsorptionModel`, `GlobalPressure`, `AggressionPolicy` (interfaces only).
 

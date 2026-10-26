@@ -6,6 +6,12 @@ owner: Heimdall
 
 **Blocked by:** 010 (emit into the pending buffer). **First slice, user decision 2026-10-22: the vanilla furnace only.** Other vanilla blocks are task 029.
 
+**Conditions carried from 010 and 009 (Odin, 2026-10-26):**
+- Paste a red run for each new test before implementing it. Missing this again is grounds for rejection.
+- Measure `PollutionApi.emit` cost inside the 100-emitter budget. `PollutionManager.dimension(level)` and `world(server)` rebuild a data-file path on every call; cache the lookup if it shows.
+- Engine tests may read buffered amounts with `DimensionPollution.pendingEmission(long)`.
+- Config keys are camelCase (architecture §4).
+
 ## Goal
 
 Make vanilla blocks generate pollution through data, with no per-block code. Core ships the engine and mapping format; the furnace mapping ships as data in the `…compat.minecraft` package inside core ([ADR 0012](../../../design/decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) §2). Core without that package loads but emits nothing.

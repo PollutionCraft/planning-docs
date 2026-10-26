@@ -276,7 +276,7 @@ Engineering's detail: [task 001](../../plan/tasks/001-mod-scaffold-and-ci/) and 
 
 ## 4. Conventions
 
-- **Naming:** base package and Maven group `io.github.pollutioncraft` ([ADR 0013](../decisions/0013-java-package-namespace/)); `…` in package names below stands for it. Mod ids `pollutioncraft`, and later `pollutioncraft_compat` (provisional). Artifact `pollutioncraft-1.21.1`. The gap-filler gets a neutral name (**open**, §9 Q8), since it is independent of pollution. Adapter packages: `…compat.<modid>`. Tag and config keys use `snake_case`. "Local pollution" means per chunk (16×16 blocks); "global pressure" means per world.
+- **Naming:** base package and Maven group `io.github.pollutioncraft` ([ADR 0013](../decisions/0013-java-package-namespace/)); `…` in package names below stands for it. Mod ids `pollutioncraft`, and later `pollutioncraft_compat` (provisional). Artifact `pollutioncraft-1.21.1`. The gap-filler gets a neutral name (**open**, §9 Q8), since it is independent of pollution. Adapter packages: `…compat.<modid>`. Tag names use `snake_case` (`siege_eligible`). Config keys use `camelCase` (`spreadFraction`, `maxEmittersPerChunk`), with a dot for a group (`siege.breakBlocks`); the key registry in [task 008](../../plan/tasks/008-server-config/) is the single source. "Local pollution" means per chunk (16×16 blocks); "global pressure" means per world.
 - **Units:** pollution in PU (dimensionless `double`). **Config intervals are in ticks (20 ticks = 1 s)** and rates are per interval, with the seconds equivalent shown in each config comment.
 - **Errors:**
   - Invalid config (NaN, negative, `4×spreadFraction ≥ 1`) is rejected at load; the default is kept and the key is logged.

@@ -6,6 +6,8 @@ owner: Heimdall
 
 **Blocked by:** 007 (storage, `activeTicks`, scheduler) and 008 (config, which must expose a runtime-override layer, see below). **Pulled forward** by user decision 2026-10-22: built before spike [003](../003-spike-gregtech-activity-hook/). It is extended as 010 and 011 land; the commands work from the first merge, against whatever data exists.
 
+**Binding rule (user, 2026-10-22, from [007](../007-storage-active-ticks-scheduler/)):** an interval snapshots the field on its first tick and writes on its last, so any field write in between would be lost. Every command that changes the field must go through `stepNow` or `abandon()`, or be queued until the interval ends.
+
 ## Goal
 
 Let a developer see and change pollution generation, spread and absorption in a running world without editing files.

@@ -6,6 +6,18 @@ owner: Heimdall
 
 **Blocked by:** 005 (field, diffusion step, interfaces).
 
+## Decisions (user, 2026-10-22)
+
+- **Interval write rule (binding on 009 and 010):** an interval snapshots the field on its first tick and writes on its last, so any field write in between would be lost. All field writes must go through `stepNow` or `abandon()`, or be queued until the interval ends.
+- **Unimplemented API methods:** `emit` and `isAggressive` throw `UnsupportedOperationException` until 010 and 016 implement them. Keep that. Do not wire callers early.
+- **Config accessors (also on [008](../008-server-config/)):** when 007 adopts the 008 accessors (reading `PollutionCraftMod.config()` once at the scheduler boundary), add a test that goes through the scheduler.
+
+- **Downgrade protection (done, in scope):** records the mod cannot read are kept and written back unchanged. A preserved dimension record is not simulated. A preserved world record stops `activeTicks` and the whole simulation. The storage exposes `isPreserved()`; [010](../010-emitter-api/) must treat it as "refuse writes".
+
+## Follow-ups
+
+- **Step cost:** a unit test at 2,500 chunks gives 0.122 ms/tick (median 2.44 ms per step) against the 0.5 ms budget. Live-server spark profiling, including the interval-start tick, waits until more is implemented (P4).
+
 ## Goal
 
 Persist the pollution field per dimension, count `activeTicks`, and run the interval step time-sliced on the server, so pollution spreads in a live world. Absorption is stubbed (zero) until P2.

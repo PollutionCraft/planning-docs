@@ -6,6 +6,12 @@ owner: Heimdall
 
 **Blocked by:** 007 (storage, scheduler, `grossEmitted`).
 
+**Binding rule (user, 2026-10-22, from [007](../007-storage-active-ticks-scheduler/)):** an interval snapshots the field on its first tick and writes on its last, so any field write in between would be lost. Field writes must go through `stepNow` or `abandon()`, or be queued until the interval ends. The emit buffer is queued. `emit` must not write the field directly.
+
+**Binding rule (from [007](../007-storage-active-ticks-scheduler/) downgrade protection):** 010 must treat `isPreserved()` as "refuse writes". When storage is preserved, `emit` adds nothing to the field or the buffer.
+
+**Open question (Heimdall's 007 review; the user has not chosen):** when an interval is dropped, are emissions already taken into it re-queued or knowingly lost? Options: re-queue them for the next interval (no loss, more state), or accept the loss and log it (simpler). Decide before 010 is built. The answer also affects the `grossEmitted` count that feeds `GlobalPressure`.
+
 ## Goal
 
 Implement `PollutionApi.emit` so anything, the block emitter engine (011) first, can add pollution safely from the server thread. Core ships no mappings, so tests call the API directly or use a test-only source.

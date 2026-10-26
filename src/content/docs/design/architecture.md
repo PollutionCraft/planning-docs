@@ -185,6 +185,20 @@ Per world, the global record:
 
 Both records carry a `dataVersion` int. Local pollution = `absorbable + persistent`.
 
+**Stored shape (task 007).** Two `SavedData` files, plain NBT compounds:
+
+- **Per dimension**, `pollutioncraft_field` in that dimension's data storage. It holds the columns, not one compound per chunk: `dataVersion` (int, currently 1) and six `long[]` tags of equal length, sorted by `keys`. They are `keys` (packed ChunkPos), `absorbable`, `persistent`, `emitted` (= `emittedLastInterval`), `dominantPos` (packed BlockPos) and `dominantRate` (the two parts of `dominantSource`). Doubles are stored as raw IEEE-754 bits, so a round trip is lossless. That is 48 B per chunk raw: at 2,500 chunks, 120 KB raw and 43,919 B measured on disk, within the budget in section 5. `lastIntervalStats` is never saved. `absorberCache` is not stored yet: the absorber task adds it as a new column and bumps `dataVersion`.
+- **Per world**, `pollutioncraft_world` in the overworld's data storage. It holds `dataVersion` (int), `activeTicks` (long) and `grossEmitted` (double).
+- **On load** (the error convention in section 4):
+  - A field entry with a NaN, infinite or negative amount, or a duplicate key, is skipped and logged.
+  - Entries past the shortest column are skipped and logged.
+  - **Downgrade protection.** An unreadable record is kept as the original tag, flagged `isPreserved()`, and written back unchanged on save. It is never overwritten or reset, so downgrading the mod cannot destroy pollution data or reset the never-decreasing `pressure`.
+    - Field record: unreadable means `dataVersion` is missing, not an int, or not the supported version.
+    - World record: unreadable also covers `activeTicks` or `grossEmitted` missing or of the wrong tag type, and invalid values (negative ticks; NaN, infinite or negative `grossEmitted`).
+  - **A preserved dimension is not simulated.** A preserved world record stops `activeTicks` and the whole simulation, and an error is logged at load. `stepNow` does nothing in either case, and nothing is merged into a preserved record.
+  - In-memory, a preserved world uses a fresh record that is never saved, so `getPressure` reads 0 for that session.
+  - **Binding on task 010 and every later writer:** `isPreserved()` means "refuse writes". Emissions to a preserved dimension or world are dropped, not buffered into it.
+
 ### 3.3 Key flows
 
 **Emission (M1).** An emitter calls `PollutionApi.emit(level, blockPos, amount)` only while its machine works. The call adds to a pending buffer, updates `dominantSource`, and adds to `grossEmitted`. Emitter sources, in order of preference:
@@ -298,7 +312,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | Field simulation | ≤ 0.5 ms/tick average with 2,500 stored chunks, at a 20-tick interval | Sparse arithmetic, time-sliced |
 | Siege AI and groups | ≤ 1.5 ms/tick with 30 sieging mobs | Spike 004 |
 | Total mod cost | < 2 ms/tick over the bare-pack baseline | Feasibility section 4 |
-| Save size | < 200 KB per dimension at 2,500 chunks | About 64 B per chunk |
+| Save size | < 200 KB per dimension at 2,500 chunks | 48 B per chunk raw; 43,919 B on disk measured at 2,500 chunks (task 007) |
 | Absorber sampling | ≤ 1 chunk per tick | 256 heightmap reads plus an entity query |
 
 **Assumption:** first estimates, to be confirmed by spike 004 and the P4 performance run.

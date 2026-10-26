@@ -19,7 +19,7 @@ Make vanilla blocks generate pollution through data, with no per-block code. Cor
 
 - **Mapping format** (datapack/data JSON, reloadable): a block id or block tag, a `rate` (PU per interval, finite and ≥ 0), and an `active_when` block-state property with expected value (for example `lit=true`). Invalid entries are skipped and logged, never fatal.
 - **Engine:** for each loaded chunk, find the mapped blocks and, per interval, call `PollutionApi.emit` for those whose property matches. Decide, and record in the PR, the discovery strategy that avoids scanning whole chunks each interval (for example register on block-entity load/unload, or on block-state change, keyed by chunk). **Budget:** inside the 0.5 ms/tick field budget ([architecture 5](../../../design/architecture/#5-non-functional-budget)) with 100 active emitters.
-- **Furnace mapping** in `…compat.minecraft`: `minecraft:furnace`, `active_when lit=true`, initial rate as a named default in data. **Verify first** that the furnace exposes `lit`, and record the finding.
+- **Furnace mapping** in `…compat.minecraft`: `minecraft:furnace`, `active_when lit=true`, default rate **1 PU per interval** (the PU scale: [glossary](../../../reference/glossary/)), as a named default in data. **Verify first** that the furnace exposes `lit`, and record the finding.
 - Rates are overridable by a datapack or pack config (tuning lives in the pack, not in code) and visible through `/pollution tune` as an emission multiplier (009).
 
 ## Files owned

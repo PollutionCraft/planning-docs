@@ -6,6 +6,8 @@ owner: Heimdall
 
 **Blocked by:** 005. Runs in parallel with 007. Task 009 builds on the runtime-override layer defined here.
 
+**Decision (user, 2026-10-22):** when [007](../007-storage-active-ticks-scheduler/) adopts these accessors (reading `PollutionCraftMod.config()` once at the scheduler boundary), add a test that goes through the scheduler.
+
 ## Goal
 
 A validated server config for every rate, interval, threshold and cap that exists so far, plus an in-memory override layer so values can be changed live without touching the file.
@@ -17,7 +19,16 @@ A validated server config for every rate, interval, threshold and cap that exist
 
 ## Behaviour
 
-- **Keys now:** `spreadIntervalTicks` (default 20), `spreadFraction` (0.02), `spreadThreshold`, `persistentDecay`, `epsilon`, `emissionMultiplier` (default 1.0, scales all emitter rates), `defaultCapacity` (absorption placeholder). Later tasks add their own keys through the same mechanism.
+- **Keys now:** `spreadIntervalTicks` (default 20), `spreadFraction` (0.02), `spreadThreshold`, `persistentDecay`, `epsilon`, `emissionMultiplier` (scales all emitter rates), `defaultCapacity` (absorption placeholder). Later tasks add their own keys through the same mechanism.
+- **Starting defaults** (PU scale: 1 PU = one lit furnace for one interval, see the [glossary](../../../reference/glossary/)). **Placeholders, to be tuned at the P4 playtest. This list is the single source of the values; other pages link here and do not repeat them.**
+
+  | Key | Default |
+  | --- | --- |
+  | `spreadThreshold` | 15 |
+  | `epsilon` | 0.001 |
+  | `persistentDecay` | 0 |
+  | `emissionMultiplier` | 1.0 |
+  | `defaultCapacity` | 100 (user decision; placeholder like the rest) |
 - **Units:** intervals in ticks, rates per interval. Each key's comment gives the seconds equivalent.
 - **Validation:** every value is bounded. NaN, infinite, negative or out-of-range values are rejected at load, the default is kept and the key is logged. Cross-field rule: `4 × spreadFraction < 1`.
 - **Key registry (single source of truth):** each key is declared once with its type, default, bounds and comment. The config file, validation, `/pollution tune` (009) and its tab-completion all read the registry. Adding a key must not require editing a second list.

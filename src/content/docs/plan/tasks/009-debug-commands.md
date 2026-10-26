@@ -29,7 +29,8 @@ Branch `feature/009-debug-commands`, commit `09c7e1e`, not yet pushed or merged.
 **Follow-ups (Sindri, after 010 is on `main`; owns `ServerConfig` for these only):**
 1. `pending: <PU>` line in `get`, from `DimensionPollution.pendingEmission(long)`.
 2. Public `ServerConfig.value(ConfigKey)`; remove the reflection in `RatesText`.
-3. The user's manual check as an op on a real server (`/pollution pressure`, `get`, `set 20`, `step`, `tune`). Not a merge blocker. The GameTests already run every subcommand through the real dispatcher.
+3. **Done as 009b (2026-10-26, commit `67cf267`, accepted by Heimdall; judged from his review and Sindri's report):** items 1 and 2 above are delivered. `get` shows `pending: <PU>` after `emittedLastInterval`; `ServerConfig.value(ConfigKey)` replaced the reflection (no `java.lang.reflect` left in `mod/src/main`). 38 of 38 GameTests on its own, 53 of 53 merged with 011. Red lines shown, mutants fail the new tests.
+4. Note: `/pollution step` does not run the block emitter engine (011). The user's manual check as an op on a real server (`/pollution pressure`, `get`, `set 20`, `step`, `tune`). Not a merge blocker. The GameTests already run every subcommand through the real dispatcher.
 
 **Blocked by:** 007 (storage, `activeTicks`, scheduler) and 008 (config, which must expose a runtime-override layer, see below). **Pulled forward** by user decision 2026-10-22: built before spike [003](../003-spike-gregtech-activity-hook/). It is extended as 010 and 011 land; the commands work from the first merge, against whatever data exists.
 

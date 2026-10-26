@@ -104,7 +104,7 @@ The pack repo already exists (packwiz; 1.21.1 NeoForge; GTM 8.0.0 snapshot) and 
 - [**008**](../tasks/008-server-config/) Server config with validation (architecture 4, errors). **Must expose a runtime-override layer** that 009's `/pollution tune` uses. After 005; parallel with 007.
 - [**009**](../tasks/009-debug-commands/) Debug commands (permission level 2), **pulled forward by user decision 2026-10-22**, built before spike 003 starts. After 007, and extended as 010 and 011 land.
   - **Read:** `/pollution get` (local value, `persistent` pool, `dominantSource`, `emittedLastInterval` for a chunk), `/pollution pressure` (`activeTicks`, world `grossEmitted`, `pressure`), and `/pollution rates`, which shows the chunk's generation, spread in and out (totals), absorption and decay for the last interval. Per-neighbour spread is deferred (Odin, 2026-10-26).
-  - **Status (2026-10-26):** 009 and 010 accepted with follow-ups, code on local branches, not yet merged. Next: 011.
+  - **Status (2026-10-26):** 009, 009b, 010 and 011 accepted with follow-ups, code on local branches, not yet merged (order: 010, 011, 009, 009b). The furnace slice of M1 is demonstrated by a GameTest. Next: the user's manual demo, then 030.
   - **Write:** `/pollution set|clear` for a chunk or radius, and `/pollution step [n]` to run n simulation intervals now.
   - **Runtime tuning:** `/pollution tune <key> <value>` overrides a config rate (spread, absorption, emission multiplier) in memory for the session. It never writes the config file, is validated like 008, and `/pollution tune reset` restores the config.
   - Tests: unit tests for argument parsing and tune validation; a GameTest that sets, steps, and reads back.

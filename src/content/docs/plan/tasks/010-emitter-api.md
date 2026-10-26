@@ -10,7 +10,7 @@ owner: Heimdall
 
 **Binding rule (from [007](../007-storage-active-ticks-scheduler/) downgrade protection):** 010 must treat `isPreserved()` as "refuse writes". When storage is preserved, `emit` adds nothing to the field or the buffer.
 
-**Open question (Heimdall's 007 review; the user has not chosen):** when an interval is dropped, are emissions already taken into it re-queued or knowingly lost? Options: re-queue them for the next interval (no loss, more state), or accept the loss and log it (simpler). Decide before 010 is built. The answer also affects the `grossEmitted` count that feeds `GlobalPressure`.
+**Decision (user, 2026-10-26):** when an interval is dropped (`abandon()`), the emissions already drained into it are re-queued into the pending buffer and join the next interval. Nothing is lost. `grossEmitted`, `emittedLastInterval` and `dominantSource` are updated only when the interval commits, so a dropped interval leaves them unchanged.
 
 ## Goal
 
@@ -27,7 +27,7 @@ Implement `PollutionApi.emit` so anything, the block emitter engine (011) first,
   - **Server thread only.** A call from another thread is rejected and logged; it does not mutate state.
   - `amount` must be finite and ≥ 0. Anything else is dropped and logged **once per source** (source = calling class or an optional source key), so a broken adapter cannot flood the log. `amount == 0` is a silent no-op.
   - Adds to a per-chunk **pending buffer**. It does not change the field mid-interval, which preserves the determinism contract.
-- **At interval start** the scheduler drains the buffer into the snapshot (step 1 of the interval step) and then:
+- **At interval start** the scheduler drains the buffer into the snapshot (step 1 of the interval step) and keeps the drained copy until the interval ends. **On commit** it then:
   - sets `emittedLastInterval` for each chunk;
   - updates `dominantSource` to the highest-rate position that emitted in the chunk, with its rate (ties broken by lowest packed `BlockPos`, for determinism);
   - adds the total to the world's `grossEmitted`, which never decreases.
@@ -46,7 +46,8 @@ Implement `PollutionApi.emit` so anything, the block emitter engine (011) first,
 2. Unit: draining twice does not double count; `grossEmitted` is monotonic.
 3. GameTest: `emit` into a chunk, after one interval `getLocal` rose by the amount, `grossEmitted` matches, and `dominantSource` is the emitting position.
 4. GameTest: an off-thread call is rejected and state is unchanged.
-5. Unflushed pending emissions are lost on restart by design; a test documents this, and that already-flushed emissions are saved.
+5. Unit and GameTest: abandoning an interval re-queues the drained emissions; the next interval applies them once, and `grossEmitted` counts them once. Draining, abandoning and draining again does not double count.
+6. Unflushed pending emissions are lost on restart by design; a test documents this, and that already-flushed emissions are saved.
 6. API-purity check passes (no internals referenced from `…api.*`).
 
 ## Commands

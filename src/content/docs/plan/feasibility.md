@@ -129,7 +129,7 @@ Thresholds come from config, so tests run before numbers are tuned.
 
 | Question | Owner | Blocks |
 | --- | --- | --- |
-| Which machines emit in the alpha? **Partly answered (user, 2026-10-22):** the first slice is the vanilla furnace only, and other vanilla blocks follow (029). Still open: whether GTM machines emit in the alpha, and whether all of 029 is in alpha scope. | User + product-architect | 012 (and 029 scope) |
+| Which machines emit in the alpha? **Partly answered (user, 2026-10-22):** the first slice is the vanilla furnace only, and other vanilla blocks follow (029). **Vanilla set decided 2026-10-27** (tasks 031, 029, 032). Still open: whether GTM machines emit in the alpha, and whether the furnace minecart (032, built after P2) ships in the alpha release. | User + product-architect | 012 (and 029 scope) |
 | Do land-claim mods protect blocks from sieges? | User | 019 |
 | Siege spawn source for unattended loaded chunks ([ADR 0008](../../design/decisions/0008-siege-in-unattended-chunks/), proposed) | User | 021 |
 | Alpha platform releases of our mods (CurseForge/Modrinth): **deferred** by the user ([ADR 0011](../../design/decisions/0011-cross-repo-artifacts-and-versioning/) §8.1). Until decided, `PUBLISH_PLATFORMS=false` and releases are GitHub Packages plus GitHub Releases only. | User | 026 platform jobs |

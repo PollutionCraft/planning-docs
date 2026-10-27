@@ -1,8 +1,42 @@
 ---
 title: "031: Emitter engine: always-active rules and a tracked-position cap"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+## Acceptance (Odin, 2026-10-27): accept with follow-ups
+
+Branch `feature/031-emitter-always-active-and-cap`, commit `65fa722`, not yet pushed or merged. Judged from Heimdall's step-0 and code reviews, Brokkr's report and `docs/emitter-mappings.md` (all read). I have no shell and did not rerun anything. Reported (Heimdall's runs): 79 of 79 GameTests twice, core 58 and mod 200 unit tests, class-load check clean, no shipped data changed.
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| `active_when` optional; absent means always active; half-specified forms rejected | Pass | `MappingValidatorTest`; `MappingEntry` has a nullable `ActiveWhen`, so a half-specified entry cannot be represented |
+| Always-active block emits its rate, stops when removed, nothing in a non-ticking chunk, emits again after unload and reload | Pass | three GameTests; the non-ticking one fails when the tick check is removed |
+| State rules unchanged (regression) | Pass | `aStateMappingStillEmitsOnlyWhileLitBesideAnAlwaysActiveOne`, all 011 tests |
+| Cap: `maxTrackedPerChunk`, tracked count equals the cap, emitted amount equals cap × rate, one log line, other chunks unaffected | Pass | `aChunkOverTheCapTracksTheLowestPositionsAndEmitsForThemOnly` (exact positions, 8 × 0.25 = 2.0) |
+| Cap is deterministic | Pass | `everyDiscoveryPathKeepsTheSameLowestPositionsWhateverTheOrder` (three event orders plus the chunk-load scan) |
+| Removal from a capped chunk is repaired; a cap change takes effect | Pass | both bounded in engine ticks, no wall clock (repair 1 tick, cap change 1 tick; design bound about 16) |
+| Cost inside 0.5 ms/tick | Pass | totals 0.08 to 0.165 ms/tick in every scenario; emission 0.13 to 0.18 µs per tracked block; rescan slice mean under 70 µs everywhere |
+| One new config key only; no shipped mapping | Pass | `ConfigRegistry`, `ServerConfig`; nothing under `mod/src/main/resources` |
+
+**The final rule (replaces "working name" and "bounds to be set" above):** key `maxTrackedPerChunk`, integer, default **2,048**, bounds **1 to 98,304**, no cross-field rule with `maxEmittersPerChunk`. A chunk keeps its **lowest packed positions**: furthest west first, then furthest north, then lowest. Blocks past the cap emit nothing and are not merged into others. Torches and any always-active block are written as an entry **without `active_when`**.
+
+**Deviations, accepted:**
+- **Design:** the approved sorted tree set was replaced by a sorted `long[]` plus a primitive scan heap, after measurement (tree set: rescan p99 870 µs dense, 559 µs at the cap). Same rule and the same convergence argument. The second rescan limit (512 kept positions per tick) stays because "without" exceeds 0.1 ms p99 in the two dense cases.
+- **Process:** `ChunkTrackTest` was written after the structure was rewritten, not before. Heimdall's mutants fail it (3 of 7 and 5 of 7). The cap's behaviour itself was test-first (GameTests red against stubs, absence tests red via mutants). Rule for next time: when a measured redesign replaces a structure, write the new structure's unit tests first, with the old structure as the stub.
+
+**What the measurement means (for the user, and for 029's rates):**
+- Each active tracked block costs 0.13 to 0.18 µs per interval. **About 58,000 to 60,000 active tracked blocks, level-wide, use the whole 0.5 ms/tick budget.** Diffusion at 2,500 chunks takes about 0.06 of it.
+- There is **no level-wide cap.** Twenty chunks at the default cap would be 41,000 blocks (about 0.31 ms/tick with diffusion). Typical play, such as 300 torches in each of 20 chunks (6,000 blocks), costs 0.155 ms/tick.
+- Escalation options if playtests approach the limit: a level-wide cap; merging a chunk's blocks into one emission; spreading the emission pass across ticks (this smooths the spike, not the average).
+- Pollution ceiling per chunk from torches alone: 2,048 × 0.01 = 20.48 PU per interval, about 20 furnaces.
+
+**Follow-ups:**
+1. **Level-wide cap decision (P4 and playtest).** Not needed now. Revisit if the performance run or a playtest shows tracked blocks near 40,000.
+2. **GameTest run time.** A local run takes 2 to 4 minutes (btrfs disk writes in the chunk-forcing batches; the same tree on tmpfs runs in 6.7 s). Heimdall: check the CI GameTest step on this PR; if it exceeds about 3 minutes, move the `measure…` tests behind an opt-in Gradle property.
+3. **P4 profiling item:** the dense-layout finishing tick (sort, merge, one read per candidate) is 100 to 140 µs on its own, p99 143 to 155 µs against a 100 µs target, for 32,768 mapped blocks in one chunk. Accepted as pathological. If spark on target hardware shows it, slice the validation reads across ticks. Report p99 and mean in 023.
+4. **Known limitation, for 029 and the playtest:** the cap ranks by position, not by rate. In a chunk over 2,048 mapped blocks, torches in the west or north can take the slots of a furnace in the east, which then stops emitting. A chunk needs more than 2,048 mapped blocks for this, so it is pathological, but a torch-lit mine plus a base could get near it. If playtests show it, rank by rate first (highest rate keeps its slot), position second.
+5. A lowered cap leaves a chunk emitting for its old, larger set for a few seconds until the rescan (documented in `docs/emitter-mappings.md`).
 
 **Blocked by:** 011 (accepted). **Blocks:** 029 (the vanilla mappings need both additions). **Origin:** user decision 2026-10-27 (light sources emit, and they have no activity state; soul torches and soul lanterns do not; the furnace minecart is built after P2, so 031 and 029 come first); the cap is follow-up 1 of the 011 acceptance. Split from 029 by Odin so the engine change is reviewed and measured on its own, before any data depends on it.
 
@@ -23,7 +57,7 @@ Two small additions to the block emitter engine from [011](../011-block-emitter-
 
 - **Mapping format:** `active_when` becomes optional. An entry without it is always active. An entry with `active_when` behaves exactly as today. A malformed `active_when` (for example a property without a value) is still an invalid entry: skipped and logged. The mod does not guess.
 - **Removal still works without an event.** The engine reads each tracked position's block state at every interval start, as today. An always-active block is dropped when the block there is no longer a mapped block. Only the "is the state active" test is skipped.
-- **Cap:** a new config key (camelCase, in the registry, so `/pollution tune` gets it for free), working name `maxTrackedPerChunk`. Integer, bounds to be set in the design step, starting default **2,048** (placeholder; must be above "hundreds of torches" and below the 4,096 buffer cap, so attribution never overflows first). Past the cap, further positions in that chunk are **not tracked** and emit nothing. One log line per chunk per rescan period, not per block.
+- **Cap:** a new config key (camelCase, in the registry, so `/pollution tune` gets it for free), `maxTrackedPerChunk`. Integer, default **2,048**, bounds 1 to 98,304 (as built; above "hundreds of torches" and below the 4,096 buffer cap, so attribution does not overflow first, though no cross-field rule enforces that). Past the cap, further positions in that chunk are **not tracked** and emit nothing. One log line per chunk per rescan period, not per block.
 - **The cap must be deterministic.** Which positions are kept must not depend on load order, placement order or restarts. Constraint, not a prescription: the same blocks in the same chunk give the same tracked set after unload, reload and restart (for example, the lowest packed positions win). Heimdall's design step picks the mechanism.
 - **The cap is read when a chunk is scanned or rescanned**, like the other engine constants. A change through `/pollution tune` applies from the next scan.
 - Everything else in 011 holds: only block-ticking chunks emit, sampling is once per interval, `emissionMultiplier` is applied in the engine, the 60 s rescan.

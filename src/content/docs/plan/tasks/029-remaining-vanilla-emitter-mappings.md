@@ -4,7 +4,7 @@ status: proposed
 owner: Heimdall
 ---
 
-**Blocked by:** 031 (always-active rule type and the tracked-position cap). **Scope and starting rates set by the user, 2026-10-27** (rates accepted as placeholders for the P4 playtest). The first slice (the furnace) is [011](../011-block-emitter-engine-and-furnace-mapping/); the furnace minecart is [032](../032-furnace-minecart-emitter/), not this task.
+**Blocked by:** ~~031~~ (**accepted 2026-10-27, so 029 can start once 031 is merged**). 031 delivered: an entry **without `active_when` is always active**, and the cap `maxTrackedPerChunk` (default 2,048, lowest packed positions win). Measured: about 58,000 to 60,000 active tracked blocks use the whole 0.5 ms/tick, 0.13 to 0.18 µs per block; 6,000 blocks cost 0.155 ms/tick in total. **Scope and starting rates set by the user, 2026-10-27** (rates accepted as placeholders for the P4 playtest). The first slice (the furnace) is [011](../011-block-emitter-engine-and-furnace-mapping/); the furnace minecart is [032](../032-furnace-minecart-emitter/), not this task.
 
 ## Goal
 
@@ -39,7 +39,8 @@ Anything not in the table is out until the user adds it. Rates are **placeholder
 ## Behaviour
 
 - One JSON file per block at `data/pollutioncraft/pollution_emitters/minecraft/<name>.json` (the path convention from 011). A block id per file, so a datapack can replace one mapping without touching the others.
-- Light sources are always active (no `active_when`). Stateful blocks use `active_when lit=true`.
+- Light sources are always active: the entry has **no `active_when` field at all** (`{ "block": "minecraft:torch", "rate": 0.01 }`). An `active_when` that is present must be complete, or the entry is rejected. Stateful blocks use `active_when lit=true`.
+- **Cap interaction (known limitation from 031):** the cap of 2,048 tracked blocks per chunk ranks by position, not by rate, so in a chunk with more than 2,048 mapped blocks, torches in the west or north can displace a furnace. Do not work around it in the data; report it if a test or the playtest hits it.
 - Wall variants are separate blocks and need their own entry (`wall_torch`).
 - A mapping is only added after its activity state is **verified in the NeoForge 21.1.x sources**, and the finding is written in the PR (the property name, who sets it, and the flag it is set with, as 011 did for the furnace).
 
@@ -52,7 +53,7 @@ Anything not in the table is out until the user adds it. Rates are **placeholder
 - Verify each block's activity state in the sources before mapping it; record the finding. If a block does not behave as assumed (for example the campfire has no usable `lit`), do not map it: report back to Odin.
 - **One GameTest per mapping**, using the real shipped data.
 - **A failing run before each test** is implemented, pasted in the report.
-- **Cost measured with torches in the hundreds** against the 0.5 ms/tick budget: for example 300 torches and lanterns in each of 20 chunks, and a chunk at the 031 cap, with the real shipped mappings. Report the total ms/tick and the 99th percentile of the rescan slice.
+- **Cost measured with torches in the hundreds** against the 0.5 ms/tick budget, with the real shipped mappings: for example 300 torches and lanterns in each of 20 chunks, and a chunk at the 031 cap. 031 already measured the engine with a test block (6,000 blocks: 0.155 ms/tick); this check confirms the shipped mappings behave the same. It does not need to repeat the engine's dense-layout cases. Report the total ms/tick and the 99th percentile of the rescan slice.
 - Rates are named defaults in the data; no rate appears in code.
 
 ## Tests to write first

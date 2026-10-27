@@ -1,8 +1,39 @@
 ---
 title: "029: Vanilla emitter mappings after the furnace"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+## Acceptance (Odin, 2026-10-27): accept with follow-ups
+
+Branch `feature/029-remaining-vanilla-emitter-mappings`, not yet committed, pushed or merged. Judged from Heimdall's review, Brokkr's report and the source findings (all read). I have no shell and did not rerun anything. Reported (Heimdall's runs on a quiet worktree): clean build and 89 of 89 GameTests twice, core 58 and mod 200 unit tests, class-load check passed. Data only: nothing changed under `mod.emitter`, `config`, `PollutionManager`, `core` or `api`.
+
+**What ships** (seven files under `data/pollutioncraft/pollution_emitters/minecraft/`): furnace 1.0 (011, unchanged); blast furnace 2.0 and smoker 2.0 while `lit=true`; campfire 0.25 while `lit=true`; torch, wall torch and lantern 0.01, always active. Not mapped: soul campfire, soul torch, soul wall torch, soul lantern, candles, jack o'lantern, lava, fire.
+
+| Criterion | Result | Evidence |
+| --- | --- | --- |
+| Activity state of each block read in the sources before mapping | Pass | `029-source-findings.md` in the mod repo (property, who sets it, flag) |
+| One GameTest per mapping, on the shipped data | Pass | blast furnace, smoker, campfire (out and relit), torch, wall torch, lantern |
+| Lit raises the chunk by exactly the rate, unlit adds none; always-active while placed, stops when removed | Pass | the same tests; torch sums compared within 1e-9, 1.0, 2.0 and 0.25 exactly |
+| Excluded blocks emit nothing | Pass | `blocksTheUserLeftOutEmitNothing` (soul variants, lit candle); red via mutants |
+| 100 torches give 1.0 PU, and 2.0 with `emissionMultiplier` 2 | Pass | `oneHundredTorchesGiveOnePuAndTwiceThatWithAMultiplierOfTwo` |
+| Blast furnace and smoker ship at exactly twice the furnace's rate | Pass | `theBlastFurnaceAndSmokerBurnTwiceAsFastSoShipAtTwiceTheFurnaceRate`; Heimdall's mutant (smoker at 1.0) fails it. It encodes the rule, so retuning all three together needs no test change |
+| Core without the `minecraft` data emits nothing (011 regression) | Pass | `anEngineWithNoRulesEmitsNothingForALitFurnace`, unedited and green |
+| Cost with the real mappings inside 0.5 ms/tick | Pass | 300 torches and lanterns in each of 20 chunks (6,000 tracked): 0.160 to 0.186 ms/tick, 0.14 µs per block. A chunk at the 2,048 cap: 0.080 to 0.085 ms/tick. Rescan mean 23 to 39 µs; the capped chunk's p99 (101 to 176 µs) is the finishing tick, accepted in 031 |
+
+**Decisions recorded (user, 2026-10-27):**
+1. **Pollution follows fuel burn rate.** The blast furnace and smoker burn fuel twice as fast as a furnace (NeoForge 21.1.264: `getBurnDuration` is divided by 2), so they ship at **2.0**, not the plan's 1.0. The table below is updated. Recorded in the brief's Decisions.
+2. **The campfire can be put out** and relit, which contradicts "it never goes out". It is mapped with `lit=true`, so an out campfire emits nothing. No decision was needed; the user has been told.
+
+**Process notes, accepted:**
+- Red-first was met in grouped runs, not one run per block: the blast furnace went red alone first, the other blocks went red together (each failing for its own reason before its file existed), and the rate test and negative controls went red through mutants. Heimdall judged this enough. For a future mapping task, "one block at a time" is a sequencing preference, and the evidence (a quoted failing line per test) is what counts.
+- Two engineers running in one worktree corrupt each other's results (shared run directory and log). The lead tells the reviewer before asking for more runs.
+
+**Follow-ups:**
+1. **GameTest run time.** A full local run takes 3 to 5 minutes because slow batches write far chunks to btrfs (8.7 s on tmpfs). The rule stands from 031: if CI's GameTest step goes over about 3 minutes, move the `measure…` tests (about 37 s together) behind an opt-in Gradle property. Heimdall, low priority: a README tip for local runs (a tmpfs `mod/run`).
+2. **P4 performance run (023):** the capped chunk's rescan p99 sits at about 0.1 ms (the finishing tick); the mean is the criterion.
+3. **Rates are placeholders for the P4 playtest.** Known limits carried from 031: the per-chunk cap ranks by position, not by rate, and 2,048 torches in one chunk give 20.48 PU per interval.
+4. **M1 is not yet fully met.** The furnace minecart (032) and GregTech machines (012) are still to come.
 
 **Blocked by:** ~~031~~ (**accepted 2026-10-27, so 029 can start once 031 is merged**). 031 delivered: an entry **without `active_when` is always active**, and the cap `maxTrackedPerChunk` (default 2,048, lowest packed positions win). Measured: about 58,000 to 60,000 active tracked blocks use the whole 0.5 ms/tick, 0.13 to 0.18 µs per block; 6,000 blocks cost 0.155 ms/tick in total. **Scope and starting rates set by the user, 2026-10-27** (rates accepted as placeholders for the P4 playtest). The first slice (the furnace) is [011](../011-block-emitter-engine-and-furnace-mapping/); the furnace minecart is [032](../032-furnace-minecart-emitter/), not this task.
 
@@ -16,9 +47,9 @@ Add the vanilla blocks that "burn something" as data mappings, in 011's format, 
 
 | Block | Decision | Rule | Starting rate (PU per interval) | Why this rate |
 | --- | --- | --- | --- | --- |
-| `minecraft:blast_furnace` | In | `active_when lit=true` | 1.0 | Same as the furnace. **Assumption, verify:** it burns fuel per tick at the same speed; only the smelting is faster, so output tied to burn time is the furnace's. |
-| `minecraft:smoker` | In | `active_when lit=true` | 1.0 | Same reasoning. |
-| `minecraft:campfire` | In | `active_when lit=true` | 0.25 | A quarter of a furnace (user guidance). **Assumption, verify:** it has a `lit` state and can be put out (water, shovel). If so, a campfire that is out emits nothing, which is more correct than the user's "it never goes out"; tell the user if the sources disagree. |
+| `minecraft:blast_furnace` | In | `active_when lit=true` | **2.0** (user, 2026-10-27; first planned as 1.0) | Pollution follows fuel burn rate. **Fact (sources):** `getBurnDuration` returns the base value divided by 2, so it burns fuel twice as fast as a furnace. The plan's 1.0 rested on an assumption that the sources refuted. |
+| `minecraft:smoker` | In | `active_when lit=true` | **2.0** (same decision) | Same: `getBurnDuration` is also divided by 2. |
+| `minecraft:campfire` | In | `active_when lit=true` | 0.25 | A quarter of a furnace (user guidance). **Fact (sources):** it has a `lit` state and **can be put out** (water, shovel) and relit (burning arrow, flint and steel, fire charge), unlike the user's "it never goes out". An out campfire emits nothing. The user has been told; no decision was needed. |
 | `minecraft:torch`, `minecraft:wall_torch` | In | always active | 0.01 | One hundred torches equal one furnace. |
 | `minecraft:lantern` | In | always active | 0.01 | A torch in a frame. Same rate keeps one number to tune. |
 | `minecraft:soul_campfire` | **Out** | — | — | Does not canonically burn wood or coal (user). |

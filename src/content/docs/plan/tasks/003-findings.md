@@ -125,8 +125,10 @@ The earlier on/off wall-time gap is run-to-run variance: Heimdall's hook-on wall
 
 ## Before 012
 
-1. **Client side (the user).** In the Prism dev instance, with a probe build that logs every handler call together with its side, run a GregTech machine on and off. Client-side handler calls may appear: the `isRemote()` early return is also a `RETURN`, so the handler can be reached on the client. The check passes if every client-side call returns before touching state: no de-duplication entry, no change to the working set, and no `emit` ([ADR 0016](../../design/decisions/0016-gtm-activity-hook-shape/) rule 4). The probe's log records the side and whether the call got past the client check. This needs a real client, so it can't be automated. Sindri writes the exact steps; the user runs them.
-2. **Spike 003b (Sindri, headless, throwaway, same rules as 003):**
+**Both items are done (2026-10-27): see [003b findings](../003b-findings/).** Nothing refuted ADR 0016. Original text kept below for the record.
+
+1. **Done.** **Client side (the user).** In the Prism dev instance, with a probe build that logs every handler call together with its side, run a GregTech machine on and off. Client-side handler calls may appear: the `isRemote()` early return is also a `RETURN`, so the handler can be reached on the client. The check passes if every client-side call returns before touching state: no de-duplication entry, no change to the working set, and no `emit` ([ADR 0016](../../design/decisions/0016-gtm-activity-hook-shape/) rule 4). The probe's log records the side and whether the call got past the client check. This needs a real client, so it can't be automated. Sindri writes the exact steps; the user runs them.
+2. **Done.** **Spike 003b (Sindri, headless, throwaway, same rules as 003):**
    - **An electric single-block machine**, powered headless (spike 006 used `gtceu:creative_energy` at 32 V for an LV electric furnace), gives exactly one working and one idle event.
    - **An electric multiblock with a muffler hatch** gives the same hook behaviour at its controller.
    - **Chunk unload and block break of a working machine:** confirm that no hook event fires, and record what is observable instead (for example block-entity removal or chunk unload), so 012 can choose its clearing mechanism.

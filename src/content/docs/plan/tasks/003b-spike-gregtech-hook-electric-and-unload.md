@@ -1,8 +1,10 @@
 ---
 title: "003b: Spike: GregTech hook, electric machines and unload"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+**Done (2026-10-27).** Results, including the user's client check: [003b findings](../003b-findings/). Nothing refuted ADR 0016.
 
 **Blocked by:** nothing; spike [003](../003-spike-gregtech-activity-hook/) is accepted ([findings](../003-findings/)). **Blocks:** the design gate (step 0) of task [012](../012-gtm-activity-adapter/). It can run in parallel with P2 absorption. **Origin:** the four things 003 left unproven ([findings, Before 012](../003-findings/#before-012)) and the assumption in [ADR 0016](../../../design/decisions/0016-gtm-activity-hook-shape/) decision 3.
 
@@ -40,7 +42,7 @@ The client side cannot run headless. The user runs it once, in the **separate de
 4. Count the lines by `side=`. Send Sindri or Odin: the number of `side=SERVER` lines, the number of `side=CLIENT` lines, and the first three lines of each.
 5. Repeat once as a **multiplayer join**: start the dev instance's dedicated server with the same probe jar, join it with the client (which has the same jar), run the machine, and count `GT_PROBE` lines in the **client** log. A client-side line here would be a real client-side call.
 
-**How to read the result.** `side=SERVER` lines must show exactly one line per real working or idle change. `side=CLIENT` lines may appear: the bytecode says the early `isRemote()` return is also a `RETURN`, so the handler can be reached on the client. Either result is acceptable. What matters is that it is recorded: 012's handler ignores client levels in any case, and its with-targets test must prove it. If `side=CLIENT` lines appear, 012 needs a test that a client-side call changes nothing. If none appear, the guard stays anyway.
+**How to read the result.** The probe logs every call, not every change: expect about 800 `side=SERVER` working lines for one furnace cycle (one per working tick) and exactly one `status=idle` line per run. The real changes are the first working line and the idle line. `side=CLIENT` lines may appear: the bytecode says the early `isRemote()` return is also a `RETURN`, so the handler can be reached on the client. Either result is acceptable. What matters is that it is recorded: 012's handler ignores client levels in any case, and its with-targets test must prove it. If `side=CLIENT` lines appear, 012 needs a test that a client-side call changes nothing. If none appear, the guard stays anyway.
 
 ## Commands
 

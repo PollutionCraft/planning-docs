@@ -4,15 +4,15 @@ status: proposed
 owner: Heimdall
 ---
 
-**Blocked by:** 032 (user order 2026-10-27: all vanilla emitters first), [003b](../003b-spike-gregtech-hook-electric-and-unload/), [033](../033-with-targets-gametest-job/) (for code; the design gate may start once 003b is done), and the user's acceptance of [ADR 0016](../../../design/decisions/0016-gtm-activity-hook-shape/). **Scope (user, 2026-10-27): GregTech machines emit in the alpha, built last.** Spike [003](../003-spike-gregtech-activity-hook/) is accepted: the rung-2 hook works on the pinned snapshot ([findings](../003-findings/)).
+**Blocked by:** 032 (user order 2026-10-27: all vanilla emitters first), ~~[003b](../003b-spike-gregtech-hook-electric-and-unload/)~~ (done, [findings](../003b-findings/)), [033](../033-with-targets-gametest-job/) (for code; the design gate may start once 003b is done), and the user's acceptance of [ADR 0016](../../../design/decisions/0016-gtm-activity-hook-shape/). **Scope (user, 2026-10-27): GregTech machines emit in the alpha, built last.** Spike [003](../003-spike-gregtech-activity-hook/) is accepted: the rung-2 hook works on the pinned snapshot ([findings](../003-findings/)).
 
 ## Design gate (required before any code)
 
 A design note, reviewed by Heimdall and checked by Odin against this page, before implementation. It must settle, from the findings, 003b and ADR 0016 (not from memory):
 
-1. **Client side.** The handler ignores client levels. Evidence from 003b's manual check, and the test that proves it.
+1. **Client side.** The handler ignores client levels. Evidence: the user's check in [003b findings](../003b-findings/) (0 `side=CLIENT` lines in singleplayer and on a multiplayer client; the handler was never reached on the client), and a test that a client-side call changes nothing (ADR 0016 rule 4 stays as written).
 2. **Injection point.** `RETURN` plus per-position de-duplication (ADR 0016 decision 3), unless 003b shows a machine does not re-announce after reload. If so, state the load-time pickup.
-3. **Removal and unload.** The adapter-owned working set: cleared on chunk unload and level unload, revalidated at each emission interval (the block at the position must still be a block id in the mappings), per ADR 0016 decision 5. Use 003b's observed signals.
+3. **Removal and unload.** Per ADR 0016 decision 5 (amended 2026-10-27), using 003b's observed signals ([findings](../003b-findings/)). **Every removal clears the position from the working set and the de-duplication map together.** Otherwise a reloaded working machine's re-announce (about 120 ticks after the reload, once the chunk is entity-ticking) is swallowed. Tests wait for entity ticking, not a fixed tick count. **Primary removal signal:** a second observe-only mixin on GTM's `MetaMachine.onUnload` (it fired on both unload and break in 003b), with a `GtPosView` interface (`getLevel()`, `getBlockPos()`) under the same rules as the status hook. Confirm the class and descriptor with `javap` on the pinned jar. `onMachineDestroyed` (break only) can tell a break from an unload if needed. Also `ChunkEvent.Unload` and level unload. **Backstop only:** per-interval revalidation (the block at the position must still be a mapped block id). It misses break-then-replace with a same-type machine, which is why the primary signal is required. A muffler facing a blocked block stops an electric multiblock from starting, so with-targets tests face it into open air.
 4. **Which machines emit, and at what rate.** This is the open product question; propose, do not decide silently. Cover: all recipe-running machines or a list; steam and primitive machines; electric tiers; multiblock controllers (one emission per controller, not per part); generators; the rate shape (for example a small table by voltage tier in data, with per-machine overrides); how a **muffler hatch** changes it (M5 mitigation is later, but the data format must not block it). Rates are placeholders for the P4 playtest, against the PU scale (a lit furnace is 1 PU per interval). Present the proposal to Odin for the user.
 5. **Rates as data.** Where the mapping lives (the `…compat.gtceu` data folder, path convention from [011](../011-block-emitter-engine-and-furnace-mapping/)), its format (reuse 011's where it fits, since GT has no block state to test), and `emissionMultiplier` applied as for 011.
 6. **Version gate.** One constant in `…compat.gtceu`: the exact verified version strings while the pack pins a snapshot (today `8.0.0-SNAPSHOT+36a6b38`); the system-property override; the bump procedure (ADR 0016 decision 6).
@@ -46,8 +46,9 @@ A running GregTech machine raises the pollution of its chunk once per interval, 
   - **at least one** working event from a running machine. This is the only detector of a moved or renamed target;
   - a single-block and a multiblock each produce exactly one working and one idle event, at the right position;
   - `WAITING` and `SUSPEND` count as not working;
-  - unload or break clears the machine, and a reloaded working machine is picked up again (or the load-time pickup from the note works);
-  - every interface method (`isWorking`, `getBlockPos`, `getLevel`) is called at least once, so a changed signature fails in CI;
+  - unload or break clears the machine from both the working set and the de-duplication map, and a reloaded working machine is picked up again once its chunk is entity-ticking;
+  - **break-then-replace:** break a working machine and place a same-type machine at the same position within one interval; that position does not emit and has no de-duplication entry. Cover `destroyBlock` and a player-style break (`BlockEvent.BreakEvent`). This is the detector for a silently missed removal hook;
+  - every interface method (`GtActivityView` and `GtPosView`) is called at least once, so a changed signature fails in CI;
   - a client-level call changes nothing;
   - **the job fails if GTM is not loaded.**
 - **The main GameTests stay GTM-free** and pass without GregTech; no test or main code references `…compat.gtceu` classes before the `ModList` check.

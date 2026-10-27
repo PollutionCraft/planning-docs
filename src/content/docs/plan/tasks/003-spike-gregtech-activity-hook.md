@@ -1,8 +1,10 @@
 ---
 title: "003: Spike: GregTech machine activity hook"
-status: proposed
+status: accepted
 owner: Heimdall
 ---
+
+**Done (2026-10-27). Recommendation (a), an observe-only rung-2 Mixin hook, accepted for task 012.** Results, the conditions for 012 and what must be proven before 012 (the client side, checked by the user; spike 003b for an electric machine, a muffler multiblock and unload/break): [003 findings](../003-findings/).
 
 **Alpha status (user, 2026-10-27):** GregTech machines emit in the alpha, so the adapter (012) is committed, not conditional. 012 is built last, after all vanilla emitters (031, 029, 032). This spike can still run earlier, in parallel with P2, to retire the hook risk (architecture R2) before 012. If it finds no workable hook, return to the user with the fallbacks in R2.
 

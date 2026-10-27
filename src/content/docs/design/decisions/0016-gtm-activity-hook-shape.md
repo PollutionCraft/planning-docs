@@ -1,0 +1,63 @@
+---
+title: "ADR 0016: GTM activity hook: interface accessors, RETURN with de-duplication, server only, exact-version gate"
+status: accepted
+owner: Mimir
+---
+
+- **Status:** **accepted 2026-10-27 by the user**, including the exact-version gate (rule 6). Proposed 2026-10-26 (Mimir), from spike 003's findings ([003 findings](../../../plan/tasks/003-findings/), Heimdall's review). **Amends in part [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/)** (accepted): rung 2's "the handler reads state through `@Shadow` members" and the GTM row "shadow `isWorking()`, `getBlockPos()`, `getLevel()`". The rest of 0015 is unchanged. Conditions for task 012 are at the end; they are not decided here.
+- **Context:** spike 003 proved rung 2 for GTM (`RecipeLogic.setStatus`, pinned `8.0.0-SNAPSHOT+36a6b38`), with three departures from 0015's sketch. **Facts (findings, Heimdall re-ran):**
+  1. `@Shadow` of `getBlockPos()`/`getLevel()` is refused: they are declared on the superclass `MachineTrait`. A mixin that `implements` our own interface with those methods, then casts `this`, works; JVM interface dispatch reaches the inherited methods.
+  2. `RETURN` of `setStatus` fires on **every** call: GTM calls `setStatus(WORKING)` every working tick (198 calls for 2 real changes on one machine).
+  3. The early `isRemote()` return is also a `RETURN`, so the handler would run on the client too (bytecode only; not observed).
+  4. A renamed target method gives no log line and no crash: the hook simply never fires.
+  5. The current public API (`pollutioncraft-003` worktree, `api/…/PollutionApi.java`) has only `emit(ServerLevel, BlockPos, double)`; the `setActive`-style call 0015 mentions was never added.
+
+## Options
+
+| Topic | Options | Prior art |
+| --- | --- | --- |
+| Reading position/level | (a) `@Shadow`: refused for superclass members. (b) **Mixin-added interface ("duck interface") + cast `this`.** (c) `@Shadow` the protected field holding the machine, then call it: needs a GTM type in a signature, excluded by 0015. (d) Reflection: rung 4, not justified. | The "duck" (or "extension") interface is the standard Mixin way to expose target members to outside code: the mixin implements an interface, the interface is merged into the target, and callers cast to it. The interface must live **outside** the mixin package, because mixin classes are not loadable at runtime ([Mixin wiki, Tricks](https://mixin-wiki.readthedocs.io/tricks/); [Fabric wiki draft, duck interfaces](https://wiki.fabricmc.net/drafts:mixin_duck_interface)). Usually the mixin implements the methods; here they resolve to methods the target already inherits. |
+| Injection point | (a) **`RETURN` + per-position de-duplication.** (b) `INVOKE` on the `updateTickSubscription()` call inside `setStatus` (runs only on a change; not tried). (c) `HEAD` with the new status argument: needs the `Status` type in the handler, excluded. | — |
+| Version gate | (a) **Exact list of verified GTM version strings while the pack pins a snapshot**; a Maven range once it pins a release. (b) A broad range such as `[8.0.0,9)`. (c) A user-editable NeoForge config value: not readable at mixin-plugin time (too early). | Spike: `VersionRange` works in the plugin; `[8.0.0,9)` accepted the snapshot string. |
+
+## Decision
+
+1. **Interface accessors are allowed on rung 2, narrowly.** A mixin may `implements` one interface of ours, declared in the adapter package `…compat.<modid>` (**not** in `….mixin`: mixin classes are not loadable at runtime), whose methods: are abstract (no defaults, no implementation in the mixin); each match, by name and descriptor, a method the target already has (declared or inherited); use only JDK, Minecraft, and NeoForge types. For GTM: `…compat.gtceu.GtActivityView { boolean isWorking(); BlockPos getBlockPos(); Level getLevel(); }`. This adds no behaviour, so it stays "observe-only". The with-targets GameTest must call every interface method at least once, so a changed signature fails in CI and not on a player's server.
+2. **The handler can never throw into the target.** The mixin method body is exactly one statement: a call to a static handler in `…compat.<modid>`, passing `(GtActivityView) (Object) this`. Every call through the interface happens inside the handler, inside a `try`. A `VirtualMachineError` (out of memory, stack overflow) is rethrown; any other `Throwable` (in particular `AbstractMethodError`/`LinkageError` from a re-signatured GTM method) **disables the adapter for the session**: set a flag that is checked first on every later call, clear the adapter's working set so nothing keeps emitting, and log **one** `ERROR` line with the GTM version and the exception (stack trace at `DEBUG`). No re-enable until restart. The handler class has no static initialiser that can fail, and depends only on `…api.*`, `…compat.common`, Minecraft and the JDK, so the one call in the mixin cannot itself fail to link.
+   **Is it enough?** For "a GTM change crashes the server through our hook": yes, together with the version gate (unverified versions are never transformed) and rule 1's CI check. It does not detect a hook that silently stops firing (fact 4); only the with-targets GameTest catches that, so that job stays mandatory (0015). It also does not tell players: GTM machines just stop polluting, with one log line. Accepted for the alpha.
+3. **Inject at `RETURN` of `setStatus`, and de-duplicate.** Chosen over the `updateTickSubscription()` call because:
+   - `setStatus` is the public state-change method; the call inside its body is an implementation detail, more likely to move.
+   - The per-tick `setStatus(WORKING)` re-announces a working machine. **Assumption, to verify in 003b:** a machine that was working when its chunk unloaded keeps calling `setStatus(WORKING)` after reload, so it is picked up again with no extra hook. An on-change-only hook would never see it, because its stored status is already `WORKING`.
+   - Cost is measured and small: 99–164 ns per call, about 0.01 ms/tick at 100 working machines (budget: < 2 ms/tick for the whole mod, [architecture 5](../../architecture/#5-non-functional-budget)).
+   De-duplication: per level, a map from packed `BlockPos` to the last working flag. Only a change reaches the working set. The hot path is: disabled flag, level, client check, one map lookup.
+4. **Server only, server thread only.** The handler returns at once when `getLevel()` is null or `isClientSide()`, before touching any state. If it is called off the server thread (not expected; the `emit` contract is server thread only), it drops the call and logs once.
+5. **Removal is the adapter's job.** There is no event when a working machine's chunk unloads or its block is broken (findings, not tested). The working set (positions of working GTM machines, adapter-local) drops a position on `ChunkEvent.Unload`, drops a level on level unload or server stop, and is validated at each emission interval: the block at the position must still be a block id in the GTM rate mappings, as 011 re-reads state each interval. A working position then calls `PollutionApi.emit` once per interval at its mapped rate times `emissionMultiplier`. No API change is needed for the alpha. Promote a `setActive`-style call to `…api.*` only when a second code adapter needs the same working set. Architecture 3.3 is corrected to say so.
+6. **Version gate: exact verified versions while on a snapshot.** The supported set is **one constant in `…compat.gtceu`** (the code, not config, because it describes what the code was verified against): today the single entry `8.0.0-SNAPSHOT+36a6b38`, compared with the `gtceu` mod file's version string. Snapshot builds share `8.0.0-SNAPSHOT` and differ only by the hash, so a range cannot tell a verified build from an unverified one. Once the pack pins a GTM release, the constant becomes a Maven range covering the verified release line (for example `[8.0.0,8.1)`), set by the PR that verifies it. A JVM system property, `pollutioncraft.gtceu.versions`, replaces the set when present. It exists for the out-of-range test and for operators, and its use is logged once at `WARN`. Outside the set: inactive, one `INFO` line, the mod runs.
+   **Bump procedure when the pack's GTM pin moves:** (1) a mod PR adds the new version string, and the with-targets job runs against the new jar (supplied by a property or the pack PR's metadata) and must be green; (2) mod release; (3) the pack PR moves the GTM pin and the mod version together. The pack never ships a GTM pin that the shipped mod's set does not contain. The pack's smoke test (task 002) asserts the "GTM hook active" log line.
+
+## Consequences
+
+- **Benefits:** no crash path from GTM changes through our hook; a reloaded working machine re-registers itself; no API change for the alpha; the gate means exactly "verified".
+- **Costs:** every GTM pin bump needs a mod release, which couples core releases to GTM while the adapter lives in core. That is one of the existing compat-split triggers ([feasibility](../../../plan/feasibility/): "GTM updates start forcing core releases"); watch it. About 1,900 handler calls/s at 100 machines, almost all de-duplicated. A disabled adapter is visible only in the log.
+- **Risks:** an interface method name that GTM later declares with a different return type throws `AbstractMethodError`. Rule 2 contains it, and rule 1's CI call surfaces it. The working set can be stale for at most one interval after a break (validation runs each interval).
+
+## Blast radius / reversibility
+
+Task 012 (not started), the ArchUnit Mixin rules (a mixin may implement at most one interface, from its own adapter package, with no default methods), architecture 3.3 and 4, ADR 0015 (status note). No shipped code. Switching to the `updateTickSubscription()` point or a broad range is a one-line change plus a green with-targets run. **Cheap to reverse.**
+
+## Revisit if
+
+- 003b shows that a reloaded working machine does not call `setStatus` again: then add a load-time pickup, or reconsider the injection point.
+- The handler cost exceeds 0.1 ms/tick in the P4 spark run.
+- The pack pins a GTM release: switch the set to a range.
+- A second code adapter needs a working set: promote `setActive` to `…api.*`.
+- GTM bumps force more than one core release a month: trigger the compat split.
+
+## Conditions for task 012 (not decided here; from Heimdall's review)
+
+Proven before 012 starts: **client side** (a manual check by the user in the Prism instance with a probe build that logs each handler call with its side and whether it got past the client check. Client-side calls **may** reach the handler, because the `isRemote()` early return is also a `RETURN`; the pass condition is that every client-side call returns before touching state (rule 4): no de-duplication entry, no working-set change, no `emit`), **an electric single-block machine**, **an electric multiblock with a muffler hatch**, and **chunk unload and block break** of a working machine, including whether it re-announces after reload (spike 003b). If any of these refutes the decisions above, this ADR is revised before 012 is briefed.
+
+## Sources
+
+- `pollutioncraft-003` worktree: `docs/tasks/003-sindri-findings.md`, `003-sindri-review.md`; `api/src/main/java/io/github/pollutioncraft/api/PollutionApi.java`.
+- [ADR 0015](../0015-compat-without-build-dependencies-on-target-mods/); [Mixin wiki: Tricks](https://mixin-wiki.readthedocs.io/tricks/) (cast through `Object`; interface outside the mixin package); [Fabric wiki draft: duck interfaces](https://wiki.fabricmc.net/drafts:mixin_duck_interface).

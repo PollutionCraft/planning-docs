@@ -4,6 +4,8 @@ status: proposed
 owner: Heimdall
 ---
 
+**Alpha status (user, 2026-10-27):** GregTech machines emit in the alpha, so the adapter (012) is committed, not conditional. 012 is built last, after all vanilla emitters (031, 029, 032). This spike can still run earlier, in parallel with P2, to retire the hook risk (architecture R2) before 012. If it finds no workable hook, return to the user with the fallbacks in R2.
+
 **Blocked by:** task [001](../001-mod-scaffold-and-ci/). GTM is in the pack at a pinned build ([ADR 0001](../../../design/decisions/0001-minecraft-version-and-loader/)).
 
 A timeboxed spike: the code is throwaway and is never merged. The deliverable is a findings note. Architecture risk R2.

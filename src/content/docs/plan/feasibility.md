@@ -118,7 +118,7 @@ All of these are covered by the design's budget (architecture section 5). Engine
 
 | Criterion | Automated | Manual |
 | --- | --- | --- |
-| M1 | GameTest, furnace mapping only (first slice): lit furnace with fuel and input raises chunk pollution after N ticks; unfuelled furnace adds none. Later, one GameTest per extra vanilla mapping (029), and one for a GT machine if GT emits in the alpha (012). | — |
+| M1 | GameTest, furnace mapping only (first slice): lit furnace with fuel and input raises chunk pollution after N ticks; unfuelled furnace adds none. Later, one GameTest per extra vanilla mapping (029), one for the furnace minecart (032), and one for a GT machine (012; GT emits in the alpha, user decision 2026-10-27). | — |
 | M2 | Unit: diffusion with no absorption spreads to neighbours and the total rises (determinism contract, architecture 3.3). GameTest: seeded source, neighbour chunk > 0 after N intervals. | Debug commands in a test world |
 | M3 | Unit: equilibrium with absorbers < without. GameTest: identical sources, one area with surface leaves and animals, compare after N intervals. | — |
 | M4 | GameTest: zombie outside a sealed box with an emitter, local pollution set above the threshold: a block breaks within T ticks, also with `mobGriefing=false`. Below the threshold: no block breaks. | Scripted playtests, including an unattended chunk-loaded base. Mob AI is nondeterministic, so GameTests use generous timeouts and are checked for flakiness. |
@@ -129,7 +129,7 @@ Thresholds come from config, so tests run before numbers are tuned.
 
 | Question | Owner | Blocks |
 | --- | --- | --- |
-| Which machines emit in the alpha? **Partly answered (user, 2026-10-22):** the first slice is the vanilla furnace only, and other vanilla blocks follow (029). Still open: whether GTM machines emit in the alpha, and whether all of 029 is in alpha scope. | User + product-architect | 012 (and 029 scope) |
+| Which machines emit in the alpha? **Partly answered (user, 2026-10-22):** the first slice is the vanilla furnace only, and other vanilla blocks follow (029). **Vanilla set decided 2026-10-27** (tasks 031, 029, 032). **Closed 2026-10-27:** the furnace minecart (032, built after P2) and GTM machines (012, built last, after all vanilla emitters) are both in the alpha. | User + product-architect | 012, 032 |
 | Do land-claim mods protect blocks from sieges? | User | 019 |
 | Siege spawn source for unattended loaded chunks ([ADR 0008](../../design/decisions/0008-siege-in-unattended-chunks/), proposed) | User | 021 |
 | Alpha platform releases of our mods (CurseForge/Modrinth): **deferred** by the user ([ADR 0011](../../design/decisions/0011-cross-repo-artifacts-and-versioning/) §8.1). Until decided, `PUBLISH_PLATFORMS=false` and releases are GitHub Packages plus GitHub Releases only. | User | 026 platform jobs |

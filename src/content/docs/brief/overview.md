@@ -34,7 +34,7 @@ Minecraft automation has no cost. Players scale machines freely and nothing push
 
 **Fact:** The alpha must prove three things work: pollution generation, propagation, and mob behavior.
 
-**Fact (confirmed 2026-10-20):** The alpha's primary goal is that the base pollution mechanics work. In: M1 (furnace first; see the M1 criterion), M2, M3 (absorption), M4. Out: M5 (defenses) and M6 (tech gating), left for later iterations.
+**Fact (confirmed 2026-10-20):** The alpha's primary goal is that the base pollution mechanics work. In: M1 (furnace first, then the full emitter set; see the M1 criterion), M2, M3 (absorption), M4. Out: M5 (defenses) and M6 (tech gating), left for later iterations.
 
 **Fact, explicitly out of the alpha:** mob evolution, mob variety, nests, environment changes.
 
@@ -71,6 +71,7 @@ M5, M6, M7, plus the Could items.
 
 - **M1.** Given a running machine, when it operates, then pollution at its location rises. Given an idle machine, then it adds none.
   - **Fact (user, 2026-10-22):** the first emitter test uses the vanilla furnace only. M1 is demonstrated with the furnace first. Other vanilla blocks follow, then GregTech machines. M1 is not fully met until the later emitters are covered.
+  - **Fact (user, 2026-10-27):** the alpha's emitter set is: the furnace; blast furnace, smoker, campfire, torches and lanterns; the furnace minecart; then GregTech machines. **M1 is fully met for the alpha only when each of these has a passing GameTest** (a lit or running one raises its chunk's pollution, an idle one adds none; always-active lights raise it while placed). GregTech comes last, after every vanilla emitter is implemented and tested.
 - **M2.** Given a source and no absorption, when time passes, then pollution appears in surrounding areas and the total rises.
 - **M3.** Given a source in an area with absorbers, when pollution is emitted, then local pollution settles lower than the same source in an area without absorbers.
 - **M4.** Given pollution above the aggression threshold, when mobs are nearby, then they path toward the source and break blocks to reach or destroy it. Given pollution below the threshold, then they do not.
@@ -131,7 +132,7 @@ For the user:
 4. **Does the M7 rewrite keep your intent?** The new wording says absorbers cannot take a polluting base to zero, and that emitting less always helps. Please confirm.
 5. **Do siege groups belong in the alpha?** Open. My recommendation is in "Siege groups: scope assessment" above.
 6. **Land-claim mods (FTB Chunks and similar).** Open. Claims may stop mobs breaking blocks in claimed chunks, which would stop sieges on exactly the bases players protect. Do we support such mods, block them, or ignore them? The user decides, with the architect's view on how claims interact with siege breaking. Not verified this session.
-7. **Which machines emit in the alpha?** Partly answered (2026-10-22). Furnace first, then other vanilla blocks. Still open: which other vanilla blocks, and whether GregTech machines are in the alpha or a later release. This depends on spike 003 (GregTech activity hook) and the version and loader choice.
+7. **Which machines emit in the alpha?** Mostly answered. Furnace first (2026-10-22). **Vanilla set decided 2026-10-27** (see Decisions): blast furnace, smoker, campfire, torches, lanterns, and the furnace minecart. **Also decided 2026-10-27:** soul torch and soul lantern do not emit; candles, jack o'lanterns, lava and fire stay out unless the user adds them; the furnace minecart is built after P2 absorption. **Closed 2026-10-27:** GregTech machines emit in the alpha, but only after all vanilla emitters (031, 029, 032) are implemented and tested; and the furnace minecart ships in the alpha (built after P2 absorption). Residual risk, no user decision needed yet: spike 003 must find a workable GTM hook; if it does not, I return to the user with the fallbacks (architecture R2).
 
 Accepted for now, may be reworked later (see Decisions):
 - **Global and local pollution.** Local unit is one chunk (16×16 blocks). Spread rate and interval are tunable. The global part is "pressure", driven by world time (it does not tick on a dedicated server with nobody online) plus total emissions, and it never decreases. A new base keeps the global pressure and starts with clean local pollution. Whether that makes restarting too hard is a tuning risk (architecture R3).
@@ -182,6 +183,20 @@ For product-architect:
 - Decision: Furnace only first. Other vanilla blocks follow, then GregTech machines.
 - Evidence: User statement (Fact).
 - Revisit if: Spike 003 shows the GregTech hook is cheap enough to include earlier.
+
+### 2026-10-27: Vanilla emitters beyond the furnace
+- Context: M1 needs a defined set of vanilla emitters after the furnace (open question 7).
+- Options: only machines with a fuel mechanic; or anything that "burns" something.
+- Decision: a block emits if it burns something, even with no fuel mechanic. In: blast furnace and smoker (same `lit` state as the furnace); campfire at a low rate; torches (wall variants included) and lanterns at a much lower rate, always active because they have no off state; the furnace minecart as its own later task, since it is an entity. Out: soul campfire (does not canonically burn wood or coal); redstone parts, beacon, brewing stand, crafter, dispenser, dropper, lever, buttons, piston, observer, comparator, repeater (no burning, or no usable state). Copper lantern: not on 1.21.1 (added in 1.21.9), so not applicable. Starting rates are placeholders for the P4 playtest: campfire 0.25, blast furnace and smoker 1.0, torch, wall torch and lantern 0.01 PU per interval (1 PU is one lit furnace for one interval). **Follow-up answers, same day:** soul torch and soul lantern are out (consistent with the soul campfire); candles, jack o'lanterns, lava and fire stay out unless added; the furnace minecart is built after P2 absorption (031 and 029 first); the starting rates are accepted as placeholders.
+- Evidence: User statement (Fact), including acceptance of the rates as placeholders. That the rates suit the game is an **Assumption** (untested). The copper lantern version is from Mojang's release notes and the Minecraft Wiki, read 2026-10-27. Each block's activity state is **unverified** until task 029 reads the NeoForge sources.
+- Revisit if: playtests show light sources swamp furnace output (hundreds of torches per chunk), or the platform moves to 1.21.9 or later.
+
+### 2026-10-27: GregTech machines and the furnace minecart are in the alpha
+- Context: Open question 7 asked whether GregTech machines emit in the alpha and whether the furnace minecart ships in it.
+- Options: GregTech in the alpha or a later release; minecart in the alpha or later.
+- Decision: GregTech machines emit in the alpha, but only after all vanilla emitters are implemented and tested (031, 029, 032 first). The furnace minecart ships in the alpha; it is built after P2 absorption. Effect on scope: the alpha emitter set grows from "furnace" to the list in the M1 criterion. M1 is fully met only when the GregTech adapter (task 012) also passes its GameTest. Effect on phases: P1 closes after 031 and 029; 032 and 012 are tracked in the roadmap and block P4.
+- Evidence: User statement (Fact). The feasibility of the GregTech hook is an **Assumption** until spike 003 and task 012: the architect's pinned-jar reading says GTM machines have no activity block state, so the hook is a Mixin (ADR 0015 rung 2), which is untested.
+- Revisit if: spike 003 finds no workable hook (the user then chooses between muffler-only emission, config block-state emitters on GT casings, or moving GregTech out of the alpha).
 
 ### 2026-10-22: Tester releases may bundle the GTM jar
 - Context: packwiz embeds the GTM jar in both the `.mrpack` (`overrides/`) and the CurseForge `.zip` (task 025 finding).

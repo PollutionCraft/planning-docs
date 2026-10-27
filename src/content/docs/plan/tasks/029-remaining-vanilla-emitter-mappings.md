@@ -8,7 +8,7 @@ owner: Heimdall
 
 ## Goal
 
-Add the vanilla blocks that "burn something" as data mappings, in 011's format, in the `…compat.minecraft` data folder. No engine code (031 owns that). This is the data half of the emitter set for M1; M1 is still not fully met until GregTech machines are decided ([brief](../../../brief/overview/), open question 7).
+Add the vanilla blocks that "burn something" as data mappings, in 011's format, in the `…compat.minecraft` data folder. No engine code (031 owns that). This is the data half of the emitter set for M1; M1 is fully met for the alpha only after 032 (furnace minecart) and 012 (GregTech machines, built last) also pass ([brief](../../../brief/overview/), decisions of 2026-10-27).
 
 ## Scope (user decision, 2026-10-27)
 

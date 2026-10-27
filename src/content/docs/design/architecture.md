@@ -33,7 +33,7 @@ Labels: **Fact** (read from a source this session; cited), **Assumption** (to ve
 ## 1. Problem and constraints
 
 - **Fact (brief):** Machines emit pollution (M1). It spreads and accumulates (M2). The world absorbs it (M3). Above a threshold, mobs path to the source and break blocks (M4).
-- **Fact (brief, alpha scope):** the v0.1 alpha is M1 (furnace first), M2, M3, M4, and the lose condition.
+- **Fact (brief, alpha scope):** the v0.1 alpha is M1 (furnace first, then the vanilla set, the furnace minecart and GregTech machines last; user, 2026-10-27), M2, M3, M4, and the lose condition.
   - **Out of the alpha:** defenses (M5), tech gating (M6), mob evolution, mob variety, nests, and environment changes.
   - M7 (the net-zero cutoff) comes later. The design must not block any of these.
 - **Fact (brief):** Target players are solo players and small co-op groups, in PvE.
@@ -323,7 +323,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 
 | Requirement | Design element | Status |
 | --- | --- | --- |
-| M1 Emission tied to activity | 3.3 Emission: emitter engine in core, mappings in compat (`…compat.minecraft`, furnace first); Emitter API; code adapters | Furnace slice first. GT hook pending spike 003; whether GT emits in the alpha is open (§9 Q7). |
+| M1 Emission tied to activity | 3.3 Emission: emitter engine in core, mappings in compat (`…compat.minecraft`, furnace first); Emitter API; code adapters | Furnace slice done. Alpha set (user, 2026-10-27): furnace, blast furnace, smoker, campfire, torches, lanterns, furnace minecart, then GregTech machines last. GT hook pending spike 003. |
 | M2 Spread and accumulation | 3.2; 3.3 interval step; [ADR 0003](../decisions/0003-storage-and-simulation/) | Accepted |
 | M3 Absorption | 3.3 sampling; [ADR 0004](../decisions/0004-absorption-anti-spam/) | Accepted |
 | M4 Hostile above threshold, break blocks | 3.3 aggression, siege, siege groups; [ADR 0006](../decisions/0006-mob-siege-rules/), [ADR 0008](../decisions/0008-siege-in-unattended-chunks/) | 0006 accepted; 0008 proposed; spike 004 |
@@ -397,7 +397,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
    - A middle option: claims block siege groups from *spawning* inside the claim, but don't stop breaking. Either way it needs a claim-mod adapter (following the adapter rule). ([ADR 0006](../decisions/0006-mob-siege-rules/))
 5. **Modrinth vs majority-AI code:** we decided to disclose AI-generated code. But Modrinth's current rules (§6 and §6.2, last modified 2026-08-13) say projects that are "primarily or entirely" AI output may not be published publicly, which goes beyond disclosure. Keep Modrinth in tier 2 and ask Modrinth support before the first upload, or plan on GitHub Releases and CurseForge only? CurseForge's AI policy is unchecked. ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §8.2)
 6. **M7 floor wording** (brief open question 4): does "absorbers cannot take an emitting base below a floor past the cutoff; emitting less lowers the floor" keep your intent? (R5)
-7. **Which machines emit in the alpha** (brief open question 7): the vanilla set is decided (2026-10-27: furnace, blast furnace, smoker, campfire, torches, lanterns, furnace minecart). Soul torch and soul lantern do not emit; the minecart is built after P2. Still open: whether GregTech machines are in the alpha or later (depends on spike 003), and whether the furnace minecart ships in the alpha release.
+7. **Which machines emit in the alpha** (brief open question 7): the vanilla set is decided (2026-10-27: furnace, blast furnace, smoker, campfire, torches, lanterns, furnace minecart). Soul torch and soul lantern do not emit; the minecart is built after P2. **Closed 2026-10-27:** the furnace minecart ships in the alpha (built after P2), and GregTech machines emit in the alpha, built last, only after all vanilla emitters are implemented and tested. Nothing else open here.
 8. **Gap-filler name:** a neutral name replacing the provisional `pollutioncraft_content`. ([ADR 0012](../decisions/0012-independent-gap-filler-and-compat-as-integration-layer/))
 9. **Third-party compile route** (narrowed by the one-artifact rule): third parties compile against the same full jar. Document only GitHub Packages (PAT) at first, and add the anonymous CurseMaven/Modrinth Maven routes when platform publishing starts? Recommended: yes. Only `…api.*` is under semver. ([ADR 0011](../decisions/0011-cross-repo-artifacts-and-versioning/) §8.3)
 10. **Later, not needed for the alpha:** the net-zero cutoff stage (proposal: HV), starting numbers (emission rates, thresholds, spread, floor value; tuned in playtests), and **platform releases** of our mods (deferred by the user; `PUBLISH_PLATFORMS` stays off, ADR 0011 §8.1).

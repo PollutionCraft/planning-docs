@@ -41,7 +41,7 @@ Per [ADR 0012](../../design/decisions/0012-independent-gap-filler-and-compat-as-
 | --- | --- | --- | --- | --- |
 | P0 Foundations | Version decided (ADR 0001 accepted). Mod and pack build in CI. Pack releases work. Spikes retire the top risks. | — | — | in progress (pack repo exists; 006 done) |
 | P1 Pollution core | Machines emit; pollution spreads and persists; debug commands show it | M1 (blocks), M2 | ADR 0003 accepted; emitting-machine list | furnace slice code-complete (005, 007–011, 030 accepted); open: merge to `main`, the user's manual check, then 031 → 029. **P1 closes after 029.** The remaining M1 emitters are outside P1: 032 (starts now, in parallel with P2 planning) and 012 (after 032), both blocking P4 |
-| P2 Absorption | Surface blocks and entities absorb pollution, with soft caps per type | M3 | ADR 0004 accepted | planned |
+| P2 Absorption | Surface blocks absorb pollution, with soft caps per type (blocks only in the alpha; entities later, user decision 2026-10-28) | M3 | ADR 0004 accepted | planned |
 | P3 Mob behaviour | Above the threshold, siegers break in to sources and players, in any loaded chunk. Below it, they don't. | M4 | ADR 0002 and ADR 0006 accepted (incl. the siege spawn source); spike 004 | planned |
 | P4 Alpha integration | Pack ships with the mod. Smoke, performance, and playtest checks pass. | M1–M4, lose condition | P1–P3, **032 (furnace minecart) and 012 (GTM adapter)** | planned |
 
@@ -130,7 +130,7 @@ The pack repo already exists (packwiz; 1.21.1 NeoForge; GTM 8.0.0 snapshot) and 
 ### P2 Absorption (tentative)
 
 - **013** `AbsorptionModel` soft-cap curve per type, with the `persistent` pool fixed at `r = 0`. After 005; parallel with P1 tasks after 005.
-- **014** `AbsorberSampler`: surface blocks via heightmap, entities, cache, round-robin. After 013 and 007.
+- **014** `AbsorberSampler`: surface blocks via heightmap, cache, round-robin (**no entities in the alpha**, user decision 2026-10-28). After 013 and 007.
 - **015** M3 GameTests and equilibrium unit tests. After 014.
 
 ### P3 Mob behaviour (tentative)

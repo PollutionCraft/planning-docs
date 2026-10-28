@@ -39,7 +39,7 @@ Minecraft automation has no cost. Players scale machines freely and nothing push
 **Fact, explicitly out of the alpha:** mob evolution, mob variety, nests, environment changes.
 
 ### Later
-M5, M6, M7, plus the Could items.
+M5, M6, M7, plus the Could items, and **entity absorption** (mobs and animals; the second half of M3, user decision 2026-10-28).
 
 ## Scope
 
@@ -74,6 +74,8 @@ M5, M6, M7, plus the Could items.
   - **Fact (user, 2026-10-27):** the alpha's emitter set is: the furnace; blast furnace, smoker, campfire, torches and lanterns; the furnace minecart; then GregTech machines. **M1 is fully met for the alpha only when each of these has a passing GameTest** (a lit or running one raises its chunk's pollution, an idle one adds none; always-active lights raise it while placed). GregTech comes last, after every vanilla emitter is implemented and tested.
 - **M2.** Given a source and no absorption, when time passes, then pollution appears in surrounding areas and the total rises.
 - **M3.** Given a source in an area with absorbers, when pollution is emitted, then local pollution settles lower than the same source in an area without absorbers.
+  - **Fact (user, 2026-10-28), alpha scope:** in the alpha the absorbers are **blocks only**: leaves, grass and plants, crops, and water. Mobs and animals (named in M3's description and in the core loop) are **not** in the alpha. M3 is demonstrated with blocks; it is fully met only when entity absorption is added later, as M1 is for emitters.
+  - **Proposed, not yet decided (Odin):** "settles lower" cannot be tested for the area without absorbers, because absorbable pollution has no decay and that area keeps growing. Reword to: "after the same number of intervals, local pollution in the area with absorbers is lower than in the area without". The user confirms.
 - **M4.** Given pollution above the aggression threshold, when mobs are nearby, then they path toward the source and break blocks to reach or destroy it. Given pollution below the threshold, then they do not.
 - **M5.** Given a high-pollution area, when the player uses a defense or mitigation option, then the attack outcome or pollution level measurably improves.
 - **M6.** Given a new world, when the player starts, then higher-pollution machines are unavailable until earlier progression steps are done.
@@ -197,6 +199,13 @@ For product-architect:
 - Decision: GregTech machines emit in the alpha, but only after all vanilla emitters are implemented and tested (031, 029, 032 first). The furnace minecart ships in the alpha; it is built after P2 absorption. Effect on scope: the alpha emitter set grows from "furnace" to the list in the M1 criterion. M1 is fully met only when the GregTech adapter (task 012) also passes its GameTest. Effect on phases: P1 closes after 031 and 029; 032 and 012 are tracked in the roadmap and block P4.
 - Evidence: User statement (Fact). **Fact (spike 003, accepted 2026-10-27; Heimdall re-ran it):** the hook is proven on the pinned snapshot. A rung-2 Mixin on `RecipeLogic.setStatus` fires server-side for a steam single-block machine and a steam multiblock controller, gives exactly one event per real working/idle change once de-duplicated, costs 0.010 to 0.016 ms/tick at 100 working machines, and loads only when GTM is present and in the verified set ([findings](../plan/tasks/003-findings/)). Muffler-only emission is ruled out (single blocks and steam multiblocks have no muffler). **Fact (spike 003b, accepted 2026-10-27, [findings](../plan/tasks/003b-findings/)):** it also holds for an electric single block and an electric blast furnace with a muffler hatch; unload and break fire no hook event but GTM's own callbacks are observable; a reloaded working machine re-announces itself if the adapter cleared its de-duplication entry on unload; and in the user's client check the handler was never reached on the client (805 server lines, 0 client lines). **Assumption, until 012:** the adapter built on this works as designed. Nothing ran in the real pack.
 - Revisit if: 003b or 012's with-targets tests refute the hook for electric machines or unload (the user then chooses between muffler-only for the shapes that fail, config block-state emitters on GT casings, or moving GregTech out of the alpha); or GTM keeps moving `RecipeLogic` (it moved on 2026-07-06) and each pin bump forces a mod release. Every GTM pin bump needs a mod release under [ADR 0016](../design/decisions/0016-gtm-activity-hook-shape/) (accepted); that coupling is a compat-split trigger.
+
+### 2026-10-28: Alpha absorbers are blocks only; starting numbers
+- Context: P2 draft briefs (013 to 015) asked what absorbs and at what numbers (their questions B1 and B6).
+- Options: blocks and passive animals; or blocks only.
+- Decision: blocks only in the alpha: leaves, grass and plants, crops, water. No entities, no animals. Entity absorption moves to Later. Starting numbers accepted as placeholders for the P4 playtest (`cap`/`k` per type): leaves 2.0/64, grass 0.5/128, crops 1.0/64, water 0.25/128; `defaultCapacity` 0.5, which replaces the earlier placeholder of 100 (task 008). Effect: the anti-spam rule in the alpha is the surface rule plus the per-type soft cap. A chunk's capacity tops out near 2 to 2.6 PU per interval (about two furnaces, one blast furnace); animal farms are no longer an alpha vector.
+- Evidence: User decision (Fact). The sums are my arithmetic from the curve in ADR 0004 (Assumption until 013 and 015 test them).
+- Revisit if: playtests show blocks alone make the world too hostile or too forgiving, or when entity absorption is scheduled (ADR 0004 and architecture 3.3 name animals and entities).
 
 ### 2026-10-27 (later): Furnace minecart starts now, not after P2
 - Context: the minecart was set "after P2 absorption" the same day. It uses `emit` and the block engine, not absorption code.

@@ -20,6 +20,34 @@ This task starts with a **design note, reviewed by Heimdall and checked by Odin 
 
 If the note shows the work is larger than a small task, return to Odin with a split proposal; do not silently widen scope.
 
+## Design gate result (Odin, 2026-10-28): passed; implementation may start
+
+Checked against this page: Sindri's note `032-sindri-design.md` and Heimdall's review `032-sindri-design-review.md` (both read; the sources were read by them, I did not re-read them). Heimdall's five changes (C1 to C5 in his review) are applied by Sindri before code; I checked them below as conditions, not as done.
+
+**All seven questions are answered:**
+1. **Lit state:** on the entity. A private `int fuel` and a synched boolean `DATA_ID_FUEL`, written only on the server at the end of the cart's own `tick()`. Read through the public `getDefaultDisplayBlockState()` (its `LIT` equals `hasFuel()`), never `getDisplayBlockState()`, which follows a custom `DisplayState`.
+2. **Tracking:** an identity set per dimension, fed by `EntityJoinLevelEvent` and `EntityLeaveLevelEvent`, with an `isRemoved()` and level check at read time. No entity scan. One emission per cart on the interval-start tick, into the chunk at its block position at that instant.
+3. **Reuse:** rules loader, multiplier and the single `emit` call. Nothing new on the write path.
+4. **Data or code:** the target and rate are data (`{"entity": "minecraft:furnace_minecart", "rate": ...}`); the activity test is a closed list in code (`EntityActivity`). ADR 0015 rung 1 for the mapping, rung 3 for events plus public vanilla API. No Mixin, no reflection.
+5. **Rate:** see below.
+6. **Cost:** about 1 µs per cart, estimated; 50 carts about 0.0025 ms/tick. To be measured and reported, not asserted.
+7. **Edge cases:** every case on this page is covered, plus others (dimension change, custom display state, cancelled join, restart).
+
+**Scope check: nothing widens it beyond a small task.** One addition to note: the mapping format gains an `entity` target, restricted to a closed list of one (the furnace minecart). That follows from question 4 and is not a general entity-emitter feature; mapping any other entity needs a new task. No split.
+
+**Decisions (user's rules and Heimdall's review, accepted):**
+- **Entity-ticking test.** A cart emits only where `isPositionEntityTicking` is true (blocks keep `shouldTickBlocksAt`). A cart in a chunk that does not entity-tick burns no fuel, so it must not pollute for free.
+- **Rate: 0.45 PU per interval while lit, placeholder for the P4 playtest.** By the user's fuel-burn rule (PU per fuel item stays the same: blast furnace 2.0 is exactly 80 PU per coal), a cart's coal lasts 3,600 ticks against a furnace's 1,600, which gives 0.44 for 80 PU per coal. Sindri proposed 0.5 (90 PU per coal, 12% above the rule); the lead set 0.45 on 2026-10-28 to follow the rule. It is a one-number data change.
+- **Known limitation: 1,024 tracked carts per dimension.** A constant, not a config key. Past it, the carts with the lowest UUID emit and the rest emit nothing, with one `WARN` per level per minute. Must be written into `docs/emitter-mappings.md` (the same way 031 documents its cap); 032 is not done until it is. Make it a config key only if a playtest comes near it.
+- **Dominant source (P3 question).** A moving cart's block position, usually a rail, can become a chunk's `dominantSource`, stale a few seconds later. The overlay and `get` show it as is. Siege targets `dominantSource` and breaks the source block (ADR 0006), so P3 must decide whether entity emissions count as a dominant source. Recorded in the roadmap under P3.
+
+**Conditions on the implementation (from Heimdall's changes):**
+- The cost test **reports** the cost (50 carts; 1,100 carts with the bound) and does not assert on wall time. It asserts only that exactly 1,024 emit and one warning is captured through a log seam.
+- GameTests assert a pollution delta only on chunks that track no mapped block (the 029 `cleanChunks` precondition), because villages generate furnaces and campfires.
+- The unload and reload test waits for entity ticking, not a fixed tick count. The non-ticking case asserts `isPositionEntityTicking == false` first.
+- The block cap, `ChunkTrack` and the rescan stay untouched. The existing `EmitterGameTests` and `VanillaEmitterGameTests` stay green, unedited, and the report says so.
+- A red run is quoted for each test before its code. Heimdall and Sindri never run Gradle in the worktree at the same time.
+
 ## Goal
 
 A lit furnace minecart raises the pollution of the chunk it is in, once per interval, through the same `PollutionApi.emit` path as the block emitters. An unlit one adds none.

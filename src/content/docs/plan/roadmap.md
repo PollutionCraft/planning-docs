@@ -135,6 +135,8 @@ The pack repo already exists (packwiz; 1.21.1 NeoForge; GTM 8.0.0 snapshot) and 
 
 ### P3 Mob behaviour (tentative)
 
+**Open question for P3 design (from the 032 design gate, 2026-10-28):** siege targets a chunk's `dominantSource` and breaks the source block (ADR 0006). A moving furnace minecart makes its rail block position the `dominantSource`, and the entry goes stale a few seconds later. Mimir decides in P3 whether entity-sourced emissions count as a dominant source. Options to weigh: accept it; or exclude entity emissions from `dominantSource` (which needs a change to the 010 buffer or `emit`, so a source flag reaches the dominant-source rule); or attribute to the chunk but not to a block target. Not blocking 032.
+
 - **016** `GlobalPressure` (driven by `activeTicks` and gross emission) and `AggressionPolicy` implementations. After 005; parallel with P1 and P2.
 - **017** Pressure tuning simulation in `core` (architecture risk R3). After 016.
 - **018** Siege targeting: player, then dominant source, then gradient ascent. Core reads the `pollutioncraft:siege_eligible` tag plus the config list. The default list (zombies) stays in core config, because it is mechanism config, not an emitter mapping; **only compat adds other mods' entries**, as optional entries ([ADR 0012](../../design/decisions/0012-independent-gap-filler-and-compat-as-integration-layer/) §1). **Unverified:** whether vanilla tag files support optional entries (`"required": false`). Check this in the first compat task that adds tag entries. After 016, 007, and spike 004.

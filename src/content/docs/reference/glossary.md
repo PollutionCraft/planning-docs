@@ -12,4 +12,4 @@ title: Glossary
 | Emitter / absorber | A block or entity that adds / removes local pollution. |
 | Active ticks | Server ticks counted only while at least one player is online. Drives global pressure (ADR 0002). |
 | Siege group | Persistent mobs the mod spawns in an aggressive loaded chunk, paid for from local pollution (ADR 0008, proposed). |
-| PU | Pollution unit; dimensionless. Scale (user decision): 1 PU is one lit furnace's output for one interval (1 s at the default 20 ticks). |
+| PU | Pollution unit; dimensionless. Scale (user decision): 1 PU is one lit furnace's output for one interval (1 s at the default 20 ticks). Other emitters are scaled to it by how fast they burn fuel; the shipped rates are listed in [task 029](../../plan/tasks/029-remaining-vanilla-emitter-mappings/). |

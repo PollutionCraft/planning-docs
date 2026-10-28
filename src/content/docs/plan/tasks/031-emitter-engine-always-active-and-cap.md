@@ -38,7 +38,7 @@ Branch `feature/031-emitter-always-active-and-cap`, commit `65fa722`, not yet pu
 4. **Known limitation, for 029 and the playtest:** the cap ranks by position, not by rate. In a chunk over 2,048 mapped blocks, torches in the west or north can take the slots of a furnace in the east, which then stops emitting. A chunk needs more than 2,048 mapped blocks for this, so it is pathological, but a torch-lit mine plus a base could get near it. If playtests show it, rank by rate first (highest rate keeps its slot), position second.
 5. A lowered cap leaves a chunk emitting for its old, larger set for a few seconds until the rescan (documented in `docs/emitter-mappings.md`).
 
-**Blocked by:** 011 (accepted). **Blocks:** 029 (the vanilla mappings need both additions). **Origin:** user decision 2026-10-27 (light sources emit, and they have no activity state; soul torches and soul lanterns do not; the furnace minecart is built after P2, so 031 and 029 come first); the cap is follow-up 1 of the 011 acceptance. Split from 029 by Odin so the engine change is reviewed and measured on its own, before any data depends on it.
+**Blocked by:** 011 (accepted). **Blocks:** 029 (the vanilla mappings need both additions). **Origin:** user decision 2026-10-27 (light sources emit, and they have no activity state; soul torches and soul lanterns do not; the furnace minecart comes after 031 and 029; its "after P2" was later dropped, see [032](../032-furnace-minecart-emitter/)); the cap is follow-up 1 of the 011 acceptance. Split from 029 by Odin so the engine change is reviewed and measured on its own, before any data depends on it.
 
 ## Goal
 

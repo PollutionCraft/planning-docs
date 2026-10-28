@@ -28,7 +28,7 @@ A validated server config for every rate, interval, threshold and cap that exist
   | `epsilon` | 0.001 |
   | `persistentDecay` | 0 |
   | `emissionMultiplier` | 1.0 |
-  | `defaultCapacity` | 100 (user decision; placeholder like the rest) |
+  | `defaultCapacity` | ~~100~~ **0.5** (user decision 2026-10-28, superseding the earlier 100; placeholder for the P4 playtest). The code default stays 100 until task 014 changes it, since the key is unused before then. 100 would have erased all pollution spreading into never-sampled chunks. |
 - **Units:** intervals in ticks, rates per interval. Each key's comment gives the seconds equivalent.
 - **Validation:** every value is bounded. NaN, infinite, negative or out-of-range values are rejected at load, the default is kept and the key is logged. Cross-field rule: `4 × spreadFraction < 1`.
 - **Key registry (single source of truth):** each key is declared once with its type, default, bounds and comment. The config file, validation, `/pollution tune` (009) and its tab-completion all read the registry. Adding a key must not require editing a second list.

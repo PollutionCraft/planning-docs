@@ -4,7 +4,7 @@ status: accepted
 owner: Mimir
 ---
 
-- **Status:** accepted 2026-10-20 by the user, "for now" (brief, open question 3). **Amendment proposed 2026-10-27 by [ADR 0017](../0017-absorber-data-sampling-and-cache/) (proposed):** curves become data (one file per absorber type) plus a global `absorptionMultiplier`; `r` has no key in the alpha. **User decision 2026-10-27 (B1): blocks only in the alpha**, so animals (decision 2) are deferred until after the alpha.
+- **Status:** accepted 2026-10-20 by the user, "for now" (brief, open question 3). **Amendment proposed 2026-10-27 by [ADR 0017](../0017-absorber-data-sampling-and-cache/) (proposed):** curves become data (one file per absorber type) plus a global `absorptionMultiplier`; `r` has no key in the alpha. **User decision 2026-10-28 (B1): blocks only in the alpha**, so animals (decision 2) are deferred until after the alpha.
 - **Context:** M3 needs natural absorption. M7 needs a guarantee that no single absorption method reaches net zero past a cutoff stage, "at any practical scale", for example with vertical tree farms or animal farms. The candidate in the brief is a maximum absorption per source type per chunk.
 
 ## Options

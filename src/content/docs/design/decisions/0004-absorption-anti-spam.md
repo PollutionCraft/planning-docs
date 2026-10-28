@@ -4,7 +4,7 @@ status: accepted
 owner: Mimir
 ---
 
-- **Status:** accepted 2026-10-20 by the user, "for now" (brief, open question 3).
+- **Status:** accepted 2026-10-20 by the user, "for now" (brief, open question 3). **Amendment proposed 2026-10-27 by [ADR 0017](../0017-absorber-data-sampling-and-cache/) (proposed):** curves become data (one file per absorber type) plus a global `absorptionMultiplier`; `r` has no key in the alpha. **User decision 2026-10-28 (B1): blocks only in the alpha**, so animals (decision 2) are deferred until after the alpha.
 - **Context:** M3 needs natural absorption. M7 needs a guarantee that no single absorption method reaches net zero past a cutoff stage, "at any practical scale", for example with vertical tree farms or animal farms. The candidate in the brief is a maximum absorption per source type per chunk.
 
 ## Options
@@ -31,5 +31,5 @@ owner: Mimir
 C is rejected for now: it edits the world, costs more, and auto-farms defeat it. It is a good candidate for the "environment changes" Could item later. F is rejected because players can't see or reason about it.
 
 - **Consequences:** M3 works with intuitive local rules, and M7 gets a hard, testable guarantee. Cost: one extra `double` per chunk, plus per-type curve constants. Risk: surface sampling may ignore absorbers players expect to count (R6).
-- **Blast radius / reversibility:** `AbsorptionModel` (`core`) and `AbsorberSampler` (adapter). The persistent pool is in the save format, which is why it is added now. Curves and `r` are config only.
+- **Blast radius / reversibility:** `AbsorptionModel` (`core`) and `AbsorberSampler` (adapter). The persistent pool is in the save format, which is why it is added now. Curves and `r` are config only (**amended by [ADR 0017](../0017-absorber-data-sampling-and-cache/), proposed:** curves are data plus one config multiplier; no `r` key in the alpha).
 - **Revisit if:** playtests show forests make early game trivial (lower the caps), or the cutoff stage is defined (set `r` per tier).

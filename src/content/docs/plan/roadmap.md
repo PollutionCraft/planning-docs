@@ -129,7 +129,7 @@ The pack repo already exists (packwiz; 1.21.1 NeoForge; GTM 8.0.0 snapshot) and 
 
 ### P2 Absorption (tentative)
 
-- **013** `AbsorptionModel` soft-cap curve per type, with the `persistent` pool fixed at `r = 0`. After 005; parallel with P1 tasks after 005.
+- [**013**](../tasks/013-absorption-model/) `AbsorptionModel` soft-cap curve per type, with the `persistent` pool fixed at `r = 0`. After 005; parallel with P1 tasks after 005. **Accepted 2026-10-28**; code on a local branch, not yet merged.
 - **014** `AbsorberSampler`: surface blocks via heightmap, cache, round-robin (**no entities in the alpha**, user decision 2026-10-28). After 013 and 007.
 - **015** M3 GameTests and equilibrium unit tests. After 014.
 

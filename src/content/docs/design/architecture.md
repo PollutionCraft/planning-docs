@@ -26,6 +26,7 @@ Design for the v0.1 alpha (M1–M4 in the [brief](../../brief/overview/)), plus 
 | [0014](../decisions/0014-licence-spdx-id/) | SPDX id `LGPL-3.0-only` for our mods (refines 0009) | proposed (§9 Q11) |
 | [0015](../decisions/0015-compat-without-build-dependencies-on-target-mods/) | Compat reaches target mods with **no build-time dependency**, via the ordered **integration ladder**: data mapping → observe-only string-targeted Mixin → other options → reflection last (user's order). GTM lands on the Mixin rung; GTM leaves core's build and the pack holds the only GTM pin. Applies to **every** repo; allowed build deps are only internal artifacts, Minecraft modding requirements (Minecraft, NeoForge/FML, MDG, Parchment, Mixin/MixinExtras), and generic Java utilities. CI may download the pack's pinned target jars for tests. Supersedes parts of 0005, 0011, 0012 and task 001's GTM setup. | **accepted** |
 | [0016](../decisions/0016-gtm-activity-hook-shape/) | GTM hook shape after spike 003: accessor interface instead of `@Shadow`, linkage-error guard that disables the adapter, `RETURN` plus de-duplication, server only, exact-version gate while GTM is a snapshot. Amends 0015 in part. | **accepted** (2026-10-27) |
+| [0017](../decisions/0017-absorber-data-sampling-and-cache/) | Absorber types as data (one JSON per type plus `absorptionMultiplier`), `WORLD_SURFACE` sampling, all sampling in the round-robin pass, the absorber cache in its own save record (field record stays v1), no `r` key in the alpha. Amends 0004 in part. | proposed |
 
 This page stays `proposed` until 0008 and 0011 are decided. Where it describes an accepted ADR, that ADR is authoritative.
 
@@ -174,7 +175,7 @@ Grid unit: **one Minecraft chunk (16 × 16 blocks, full height)**, keyed by chun
 | `emittedLastInterval` | `double` | Gross emission in this chunk last interval |
 | `dominantSource` | `long` (BlockPos) + `double` rate | Highest-rate emitter last interval; the siege target |
 | `lastIntervalStats` | `ChunkIntervalStats`, transient, **never saved** | `spreadIn`, `spreadOut`, `absorbed`, `decayed` (PU) from the last interval; read by the debug `rates` command and the F3 overlay. For a chunk that survives pruning: Δlocal = `emittedLastInterval + spreadIn − spreadOut − absorbed − decayed`. The sub-`epsilon` remainder of a pruned chunk is dropped and not recorded. |
-| `absorberCache` | per-type counts + `sampledAtActiveTick` | Last absorber sample; used while the chunk is unloaded |
+| `absorberCache` | per-type counts + capacity (`double`, before the multiplier) + `sampledAtActiveTick` (in memory only) | Last absorber sample; capacity is computed at sample time and on type reload, and the interval step only reads it. Kept for loaded chunks and for chunks with a field entry, and dropped when the field chunk is pruned. Saved (counts only) in its own record, not in the field record ([ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/), proposed) |
 
 Per world, the global record:
 
@@ -188,7 +189,7 @@ Both records carry a `dataVersion` int. Local pollution = `absorbable + persiste
 
 **Stored shape (task 007).** Two `SavedData` files, plain NBT compounds:
 
-- **Per dimension**, `pollutioncraft_field` in that dimension's data storage. It holds the columns, not one compound per chunk: `dataVersion` (int, currently 1) and six `long[]` tags of equal length, sorted by `keys`. They are `keys` (packed ChunkPos), `absorbable`, `persistent`, `emitted` (= `emittedLastInterval`), `dominantPos` (packed BlockPos) and `dominantRate` (the two parts of `dominantSource`). Doubles are stored as raw IEEE-754 bits, so a round trip is lossless. That is 48 B per chunk raw: at 2,500 chunks, 120 KB raw and 43,919 B measured on disk, within the budget in section 5. `lastIntervalStats` is never saved. `absorberCache` is not stored yet: the absorber task adds it as a new column and bumps `dataVersion`.
+- **Per dimension**, `pollutioncraft_field` in that dimension's data storage. It holds the columns, not one compound per chunk: `dataVersion` (int, currently 1) and six `long[]` tags of equal length, sorted by `keys`. They are `keys` (packed ChunkPos), `absorbable`, `persistent`, `emitted` (= `emittedLastInterval`), `dominantPos` (packed BlockPos) and `dominantRate` (the two parts of `dominantSource`). Doubles are stored as raw IEEE-754 bits, so a round trip is lossless. That is 48 B per chunk raw: at 2,500 chunks, 120 KB raw and 43,919 B measured on disk, within the budget in section 5. `lastIntervalStats` is never saved. `absorberCache` is not stored here: per [ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/) (proposed) it gets its own per-dimension record, `pollutioncraft_absorbers` (`dataVersion` 1; `types` list, sorted `keys` that are a subset of the field's, row-major `int[] counts`; about 24 B per entry), so the field record stays at version 1 with no migration. The cache is derived data, so an unreadable absorber record is logged, replaced by an empty cache, and overwritten on save. This is the one exception to downgrade protection below.
 - **Per world**, `pollutioncraft_world` in the overworld's data storage. It holds `dataVersion` (int), `activeTicks` (long) and `grossEmitted` (double).
 - **On load** (the error convention in section 4):
   - A field entry with a NaN, infinite or negative amount, or a duplicate key, is skipped and logged.
@@ -229,7 +230,16 @@ Apply the deltas at the end of the interval. **Determinism contract:** the same 
 
 > Factorio's 64 ticks at 60 UPS is about 1.07 s, so 20 Minecraft ticks keeps Factorio's real-time pace. The previous draft's default of 64 ticks would have been 3.2 s; corrected.
 
-**Absorber sampling (M3).** On chunk load, and then round-robin over loaded chunks (at most once per chunk per 10 minutes), the sampler reads the top surface block of each of the 256 columns. It counts tagged absorber blocks and tagged living entities, then caches the result. Unloaded chunks use the cache; never-sampled chunks use `defaultCapacity`. See [ADR 0004](../decisions/0004-absorption-anti-spam/).
+**Absorber sampling (M3).** Per [ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/) (proposed):
+- **One round-robin pass** samples at most one loaded chunk per server tick, **only while a player is online**, with all timing in `activeTicks`.
+- **Chunk load only queues** a chunk; it is never sampled inline. The queue serves chunks not yet sampled this session first, then samples older than 10 minutes (12,000 active ticks).
+- **The sampler never loads or generates a chunk:** it reads only through `getChunkNow`.
+- **A sample** reads the block at `WORLD_SURFACE` height − 1 in each of the 256 columns, counts it against the absorber types' block tags, and stores per-type counts. From them it computes the chunk's capacity once, `Σ_type cap·(1 − e^(−n/k))`, held as a `double`.
+- **The interval step only reads** `capacity × absorptionMultiplier`.
+- **On `/reload`,** capacities are recomputed from the stored counts, and loaded chunks are re-queued.
+- **Unloaded chunks** use their cached capacity; never-sampled ones use `defaultCapacity` (also multiplied).
+- **Alpha scope (user, 2026-10-28): blocks only:** leaves, grass and plants, crops, water. No entities; the deferred design is in ADR 0017.
+- **Starting numbers are P4 placeholders** (user, 2026-10-28). See [ADR 0004](../decisions/0004-absorption-anti-spam/).
 
 **Aggression (M4).** A chunk is aggressive when `local ≥ T0 × (1 − k·pressure)`, with `0 ≤ k < 1`. A chunk with no local pollution is never aggressive. `pressure` also scales an **intensity**: the cap on sieging mobs, break speed, and siege-group size. See [ADR 0002](../decisions/0002-pollution-model-global-local/).
 
@@ -262,7 +272,8 @@ These are two separate rules:
 - **Emitter API:** `emit(level, pos, amount)`; `amount` finite and ≥ 0; server thread only.
 - **Read API:** `getLocal(level, chunkX, chunkZ)`, `getPressure(server)`, `isAggressive(level, chunkX, chunkZ)`.
 - **Siege registration:** siege-eligible mobs come from the config list plus the tag `pollutioncraft:siege_eligible`. Mobs from other mods, including the gap-filler, join through tag entries **shipped by compat** (ADR 0012); the mob's own mod ships nothing. **Assumption:** eligible types must be pathfinding mobs (`PathfinderMob` in Mojang mappings); others are ignored with one log warning.
-- **Tags** (namespace `pollutioncraft`): `absorbers/<type>` (blocks and entity types), `siege_eligible`, `siege_immune`, `emitters/<name>`.
+- **Absorber types** (data, [ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/), proposed): `data/<ns>/pollution_absorbers/<target mod id>/<type>.json` with `blocks` (a block tag), `cap`, `k`; same error, override and `/reload` rules as the emitter mappings. Config: `absorptionMultiplier` (1.0, 0 to 1,000, tunable) and `defaultCapacity` (0.5 from task 014; a P4 placeholder, user 2026-10-28).
+- **Tags** (namespace `pollutioncraft`): `absorbers/<type>` (blocks; entity types after the alpha), `siege_eligible`, `siege_immune`, `emitters/<name>`.
 - **Commands** (permission level 2): `/pollution get|set|clear|step|pressure|rates`, and `/pollution tune <key> <value>` for in-memory, session-only rate overrides (never written to config).
 - **Dev overlay:** an F3 debug-screen section showing local pollution, generation/spread/absorption rates, and pressure, fed by a server payload sent only to permission-level-2 players with the overlay on. A developer tool, not the player display (a Could item); the mod is required on both client and server (user decision 2026-10-22, roadmap task 030). **As built (task 030):** the server formats the lines (from the same text code as the commands) and the payload carries them, so the client only appends text. Payload layout: protocol version, body length, body; an unknown version shows `no data` and never disconnects. The network channel version is fixed and separate from the payload protocol version. The toggle is `/pollution overlay on|off`, per player, in memory, default off; `on` sends one payload at once. A payload is built only for a subscribed player who holds permission level 2 at that moment. Until task 016, `pressure` shows `0 (until task 016)` and `aggressive` shows `n/a (until task 016)`. Client classes are referenced only from one registration lambda, enforced by an ArchUnit rule and a runtime class-load check.
 - **Config:** server config; every rate, interval, threshold, and cap.
@@ -324,7 +335,8 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | Siege AI and groups | ≤ 1.5 ms/tick with 30 sieging mobs | Spike 004 |
 | Total mod cost | < 2 ms/tick over the bare-pack baseline | Feasibility section 4 |
 | Save size | < 200 KB per dimension at 2,500 chunks | 48 B per chunk raw; 43,919 B on disk measured at 2,500 chunks (task 007) |
-| Absorber sampling | ≤ 1 chunk per tick | 256 heightmap reads plus an entity query |
+| Absorber sampling | ≤ 1 chunk per tick; **≤ 0.05 ms/tick averaged** for the round-robin pass; **≤ 0.5 ms for one chunk sample**. Separate from the field budget, inside the total. No chunk-load cost, because load only queues ([ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/)) | 256 heightmap reads and tag checks (no entity query in the alpha); measured in task 014 |
+| Absorber cache save | Inside the save budget above: about 24 B per field chunk raw (4 types), about 60 KB at 2,500 chunks; bounded by the field, not by explored area | Measured in 014 ([ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/)) |
 | Block emitter engine | Inside the field budget at 100 active emitters (task 011); no level-wide cap | Measured in task 031: 0.13 to 0.18 µs per active tracked block per interval; about 58,000 to 60,000 active tracked blocks use the whole 0.5 ms/tick; 6,000 blocks cost 0.155 ms/tick in total |
 
 **Assumption:** first estimates, to be confirmed by spike 004 and the P4 performance run.
@@ -335,7 +347,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | --- | --- | --- |
 | M1 Emission tied to activity | 3.3 Emission: emitter engine in core, mappings in compat (`…compat.minecraft`, furnace first); Emitter API; code adapters | Vanilla set done (accepted: furnace 011, blast furnace, smoker, campfire, torches and lanterns 029, furnace minecart 032; code not yet merged). Alpha set (user, 2026-10-27): those, then GregTech machines last (012, the remaining part of M1). GT hook proven by spike 003 ([ADR 0016](../decisions/0016-gtm-activity-hook-shape/), accepted); 003b and the client check are open before 012. |
 | M2 Spread and accumulation | 3.2; 3.3 interval step; [ADR 0003](../decisions/0003-storage-and-simulation/) | Accepted |
-| M3 Absorption | 3.3 sampling; [ADR 0004](../decisions/0004-absorption-anti-spam/) | Accepted |
+| M3 Absorption | 3.3 sampling; [ADR 0004](../decisions/0004-absorption-anti-spam/); [ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/) | 0004 accepted; 0017 proposed. Alpha: blocks only (user, 2026-10-28); mobs and animals are deferred. Acceptance per the brief's M3 as reworded by Odin: after N intervals, local pollution is lower than the same source without absorbers |
 | M4 Hostile above threshold, break blocks | 3.3 aggression, siege, siege groups; [ADR 0006](../decisions/0006-mob-siege-rules/), [ADR 0008](../decisions/0008-siege-in-unattended-chunks/) | 0006 accepted; 0008 proposed; spike 004 |
 | M5 Defense and mitigation | Read API; `persistent` pool; tiered emission | **Gap (deferred)** |
 | M6 Tier gating | [ADR 0007](../decisions/0007-tech-tree-and-mod-list/) | **Gap (deferred)**; GregTech-led accepted |
@@ -364,7 +376,7 @@ Sized for 1–8 players on one server, with GTM-scale packs.
 | R3 | Global pressure makes a new base unwinnable | `core` simulation of a scripted 20-hour curve; half a day |
 | R4 | GTM 1.21.1 snapshot unstable | **Spike [006](../../plan/tasks/006-spike-gtm-1-21-readiness/) done; passed narrowly** ([findings](../../plan/tasks/006-findings/)). Remaining: #5293 (crash with other mods): the pack smoke test runs on every mod addition. #5447 (solid boilers): reproduce before steam progression is relied on. No 8.0 date: bump snapshots deliberately, with a smoke test and a world-load check. Fallback: 1.20.1 Forge ([ADR 0001](../decisions/0001-minecraft-version-and-loader/)). |
 | R5 | **M7 testability.** The brief has adopted the floor wording: past the cutoff, steady-state local pollution at an emitting base ≥ `r × E / λ`, regardless of absorbers, and the floor drops when emission drops. **The user still has to confirm this keeps their intent.** | User confirmation (§9 Q6) |
-| R6 | Surface sampling ignores absorbers players expect to count | P2 playtest |
+| R6 | Surface sampling ignores absorbers players expect to count. With `WORLD_SURFACE`, snow layers, carpets, torches and roofs are the top block and hide what is under them | P2 playtest. Fallback: read the first non-replaceable block below ([ADR 0017](../decisions/0017-absorber-data-sampling-and-cache/)) |
 | R7 | Siege groups in unattended chunks wipe bases unexpectedly, or cost too much | Spike 004 extension: one group against a forced-loaded box with no player nearby; measure MSPT and check despawn |
 | R8 | ARR licences (Improved Mobs, Pollution of the Realms) | Only if adopted |
 | R9 | Thermal and IC2 removed as targets (no builds) | None needed; the user picks substitutes ([ADR 0007](../decisions/0007-tech-tree-and-mod-list/)) |

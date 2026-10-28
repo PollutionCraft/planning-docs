@@ -4,7 +4,7 @@ status: proposed
 owner: Heimdall
 ---
 
-**Blocked by:** 029 and 031, and **P2 absorption** (013 to 015). **User decisions, 2026-10-27:** the furnace minecart emits, as its own task, because it is an entity and the block engine cannot track it; it is built **after P2 absorption**, with 031 and 029 first. Not started, and the design note below is not needed until P2 is done. **It ships in the alpha** (user, 2026-10-27), so it blocks P4. The GregTech adapter (012) is built after it.
+**Blocked by:** nothing. 029 and 031 are merged. **Sequencing decision of 2026-10-27 (later, user): starts now, in parallel with P2 planning.** The earlier "after P2 absorption" was a sequencing preference, never a technical dependency: 032 uses `emit` ([010](../010-emitter-api/)) and the [011](../011-block-emitter-engine-and-furnace-mapping/) engine, not absorption code. **User decisions, 2026-10-27:** the furnace minecart emits, as its own task, because it is an entity and the block engine cannot track it. **It ships in the alpha**, so it blocks P4. The GregTech adapter (012) is built after it. The design gate below comes first.
 
 ## Design gate (required before any code)
 
